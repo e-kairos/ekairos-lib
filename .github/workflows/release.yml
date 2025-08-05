@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: pulzar-core
+        # se ejecuta en la raíz (repo es el paquete)
+        working-directory: .
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
