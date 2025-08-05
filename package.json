@@ -1,29 +1,39 @@
 {
-  "name": "@pulzar/core",
+  "name": "@pulz-ar/core",
   "version": "1.0.0",
   "description": "Pulzar Core",
+  "homepage": "https://github.com/pulz-ar/pulzar-lib-core#readme",
+  "bugs": {
+    "url": "https://github.com/pulz-ar/pulzar-lib-core/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pulz-ar/pulzar-lib-core.git"
+  },
+  "license": "MIT",
+  "author": "",
+  "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "pnpm run build",
-    "lint": "eslint . --ext .ts",
-    "test": "echo \"No tests specified\" && exit 0"
-  },
   "files": [
     "dist"
   ],
   "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "access": "public"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pulzar/pulzar-core.git"
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "release": "semantic-release",
+    "prepublishOnly": "pnpm run build",
+    "test": "echo \"No tests specified\" && exit 0"
   },
-  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.9.2",
+    "semantic-release": "^23.0.2",
+    "@semantic-release/npm": "^10.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/commit-analyzer": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^11.0.3"
   }
-} 
+}
