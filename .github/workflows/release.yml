@@ -13,10 +13,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: .
+    # Ejecutamos en la raíz del repo (contiene pnpm-lock.yaml generado con pnpm 10)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -26,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10.14.0
           run_install: false
 
       - name: Setup Node.js
