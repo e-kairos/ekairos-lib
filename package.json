@@ -1,0 +1,29 @@
+{
+  "name": "@pulzar/core",
+  "version": "1.0.0",
+  "description": "Pulzar Core",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm run build",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pulzar/pulzar-core.git"
+  },
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+} 
