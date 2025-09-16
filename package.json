@@ -45,5 +45,21 @@
     "semantic-release": "^23.0.2",
     "typescript": "^5.9.2"
   },
-  "exports": "{.:./dist/index.js,./agent:{require:./agent/index.js,types:./agent/index.d.ts},./domain:{require:./domain/index.js,types:./domain/index.d.ts}}"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./agent/index.d.ts",
+      "require": "./agent/index.js",
+      "default": "./agent/index.js"
+    },
+    "./domain": {
+      "types": "./domain/index.d.ts",
+      "require": "./domain/index.js",
+      "default": "./domain/index.js"
+    }
+  }
 }
