@@ -16,7 +16,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "agent",
+    "domain"
   ],
   "publishConfig": {
     "access": "public"
@@ -27,13 +29,21 @@
     "prepublishOnly": "pnpm run build",
     "test": "echo \"No tests specified\" && exit 0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@instantdb/admin": "^0.21.16",
+    "@instantdb/core": "^0.21.16",
+    "ai": "^5.0.44",
+    "braintrust": "^0.3.7",
+    "zod": "^4.1.8"
+  },
   "devDependencies": {
-    "typescript": "^5.9.2",
-    "semantic-release": "^23.0.2",
-    "@semantic-release/npm": "^10.0.3",
-    "@semantic-release/git": "^10.0.1",
     "@semantic-release/commit-analyzer": "^10.0.1",
-    "@semantic-release/release-notes-generator": "^11.0.3"
-  }
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^10.0.3",
+    "@semantic-release/release-notes-generator": "^11.0.3",
+    "@types/node": "^24.5.0",
+    "semantic-release": "^23.0.2",
+    "typescript": "^5.9.2"
+  },
+  "exports": "{.:./dist/index.js,./agent:{require:./agent/index.js,types:./agent/index.d.ts},./domain:{require:./domain/index.js,types:./domain/index.d.ts}}"
 }

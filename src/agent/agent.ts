@@ -1,12 +1,13 @@
-import { init, id, tx, lookup, InstaQLEntity } from "@instantdb/admin"
+import { init, id, tx, lookup, InstaQLEntity, InstantAdminDatabase } from "@instantdb/admin"
 import { convertToModelMessages, createUIMessageStream, generateText, ModelMessage, smoothStream, stepCountIs, streamText, Tool, tool, UIMessageStreamWriter } from "ai"
-import schema from "@instant.schema"
+import { agentDomain } from "./schema"
 import { z } from "zod"
 
 import { UIMessage } from 'ai';
 import { initLogger } from "braintrust";
 import { AgentService, ContextEvent, ContextIdentifier, StoredContext } from "./service";
 import { ASSISTANT_MESSAGE_TYPE, convertEventsToModelMessages, convertEventToModelMessages, convertModelMessageToEvent, createAssistantEventFromUIMessages, createUserEventFromUIMessages, ResponseMessage, SYSTEM_MESSAGE_TYPE } from "./events";
+import { SchemaOf } from "../domain";
 
 // Inicializar Braintrust logger
 const logger = initLogger({
@@ -40,12 +41,19 @@ export interface AgentOptions {
 export type DataStreamWriter = UIMessageStreamWriter<AgentMessage>
 const createDataStream = createUIMessageStream;
 
-const agentService = new AgentService()
+type AgentSchemaType = SchemaOf<typeof agentDomain>;
 
 export abstract class Agent<Context> {
-  protected db = init({ appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string, adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string, schema })
 
-  constructor(private opts: AgentOptions = {}) { }
+  private readonly db: InstantAdminDatabase<AgentSchemaType>;
+  private readonly opts: AgentOptions;
+  private readonly agentService: AgentService;
+
+  constructor(db: InstantAdminDatabase<AgentSchemaType>, opts: AgentOptions = {}) {
+    this.db = db
+    this.opts = opts
+    this.agentService = new AgentService(db)
+  }
 
   protected abstract buildSystemPrompt(context: StoredContext<Context>, ...args: any[]): Promise<string> | string
   protected abstract buildTools(context: StoredContext<Context>, dataStream: DataStreamWriter): Promise<Record<string, Tool>>
@@ -118,10 +126,10 @@ export abstract class Agent<Context> {
   ) {
 
     // get or create context
-    const currentContext = await agentService.getOrCreateContext<Context>(contextIdentifier)
+    const currentContext = await this.agentService.getOrCreateContext<Context>(contextIdentifier)
 
     // save incoming event
-    await agentService.saveEvent({ id: currentContext.id }, incomingEvent)
+    await this.agentService.saveEvent({ id: currentContext.id }, incomingEvent)
 
     
     const dataStreamResult = createDataStream({
@@ -130,18 +138,18 @@ export abstract class Agent<Context> {
         const MAX_LOOPS = 10
 
         // load previous events
-        const previousEvents = await agentService.getEvents({ id: currentContext.id })
+        const previousEvents = await this.agentService.getEvents({ id: currentContext.id })
 
         const events: ContextEvent[] = [...previousEvents, incomingEvent]
 
         const contextId = currentContext.id
 
         const eventId = id()
-        let reactionEvent = await agentService.saveEvent({ id: currentContext.id }, {
+        let reactionEvent = await this.agentService.saveEvent({ id: currentContext.id }, {
           id: eventId,
           type: "assistant",
           channel: "agent",
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           content: { parts: [] },
           status: "pending",
         })
@@ -154,14 +162,14 @@ export abstract class Agent<Context> {
           loopSafety++
 
           // Read context
-          const currentContext = await agentService.getContext<Context>({ id: contextId })
+          const currentContext = await this.agentService.getContext<Context>({ id: contextId })
           dataStream.write({ type: "data-context-id", data: { contextId: currentContext.id } } as any)
 
           // Initialize on each loop and get new context data
           const contextContent = await this.initialize(currentContext)
 
           // Update context
-          const updatedContext = await agentService.updateContextContent({ id: currentContext.id }, contextContent)
+          const updatedContext = await this.agentService.updateContextContent({ id: currentContext.id }, contextContent)
 
           // Build tools
           const subclassToolsAll = await this.buildTools(updatedContext, dataStream)
@@ -292,7 +300,7 @@ export abstract class Agent<Context> {
             content: { parts: [...reactionEvent.content.parts, ...lastEvent.content.parts] },
           }
 
-          const savedEvent = await agentService.updateEvent(reactionEvent.id, reactionEventWithParts)
+          const savedEvent = await this.agentService.updateEvent(reactionEvent.id, reactionEventWithParts)
 
           //await this.opts.onEventCreated?.({ id: savedEvent.id, type: eventType, status: "processing" })
 
@@ -353,7 +361,7 @@ export abstract class Agent<Context> {
             return p
           })
 
-          const updatedEvent = await agentService.updateEvent(savedEvent.id, {
+          const updatedEvent = await this.agentService.updateEvent(savedEvent.id, {
             id: savedEvent.id,
             type: savedEvent.type,
             channel: "agent",
@@ -385,7 +393,7 @@ export abstract class Agent<Context> {
             break
           }
         }
-        await agentService.updateEvent(reactionEvent.id, {
+        await this.agentService.updateEvent(reactionEvent.id, {
           ...reactionEvent,
           status: "completed",
         })

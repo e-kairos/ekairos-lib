@@ -115,6 +115,6 @@ export function convertModelMessageToEvent(eventId: string, message: ResponseMes
     content: {
       parts: message.message.content,
     },
-    createdAt: message.timestamp,
+    createdAt: typeof message.timestamp === 'string' || typeof message.timestamp === 'number' ? message.timestamp : message.timestamp.toISOString(),
   }
 }

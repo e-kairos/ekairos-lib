@@ -1,12 +1,15 @@
 import { tool } from "ai"
+import { z } from "zod"
 
-type ActionOptions = Parameters<typeof tool>[0]
+export type ActionInput = {
+  message: string
+}
 
-export const action = (options: ActionOptions) => {
+export function action(name: string, description: string) {
   return tool({
-    ...options,
-    execute: async (args) => {
-      return { success: true, message: args.message, data: { messageId: args.message, threadId } }
-    }
+    description: description,
+    inputSchema: z.object({
+      message: z.string(),
+    }),
   })
 }
