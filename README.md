@@ -109,25 +109,134 @@ feature branch → PR → merge a main → push → CI → nueva versión + publ
 3. Abre un Pull Request contra `main`.
 4. Al hacer *merge*, el workflow calcula la versión adecuada y publica.
 
-### 5. Publicar manualmente (sólo casos extremos)
+### 5. Cómo hacer commits correctamente
 
-Si necesitas publicar localmente:
+Para que semantic-release detecte tus cambios y genere una nueva versión, **debes usar mensajes de commit convencionales**:
 
-```powershell
-# Instalar deps y compilar
-yarn; # o pnpm install
-pnpm run build;
+#### Formato básico
+```
+<tipo>: <descripción corta>
 
-# Ejecutar semantic-release en local (usa tus credenciales)
-setx NPM_TOKEN "<token>";
-setx GH_TOKEN "<token>";
+[cuerpo opcional con más detalles]
 
-pnpm run release;
-
-# Comandos simplificados para versioning + build + release
-pnpm run ship:major;  # 1.0.0 -> 2.0.0
-pnpm run ship:minor;  # 1.0.0 -> 1.1.0
-pnpm run ship:patch;  # 1.0.0 -> 1.0.1
+[footer opcional: BREAKING CHANGE: descripción]
 ```
 
-No uses `npm version` ni edites `package.json`; todo lo gestiona semantic-release. 
+#### Ejemplos prácticos
+
+**Para bugfixes (incrementa PATCH: 1.0.0 → 1.0.1):**
+```bash
+git commit -m "fix: corrige error en validación de datos"
+git commit -m "fix: resuelve memory leak en agent service"
+```
+
+**Para nuevas features (incrementa MINOR: 1.0.0 → 1.1.0):**
+```bash
+git commit -m "feat: agrega soporte para dataset transformations"
+git commit -m "feat: añade exportación de módulos de file y transform"
+```
+
+**Para cambios breaking (incrementa MAJOR: 1.0.0 → 2.0.0):**
+```bash
+git commit -m "feat!: cambia API de agent service
+
+BREAKING CHANGE: el método execute ahora requiere contexto obligatorio"
+```
+
+**Commits que NO generan release:**
+```bash
+git commit -m "chore: actualiza dependencias"
+git commit -m "docs: mejora README"
+git commit -m "style: formatea código"
+git commit -m "refactor: reorganiza estructura de archivos"
+```
+
+#### ⚠️ Importante
+- Si no hay commits con `feat:` o `fix:` desde el último release, **no se generará una nueva versión**
+- Esto es normal y esperado para commits de mantenimiento
+- Si necesitas forzar un release, agrega un commit con `feat:` o `fix:`
+
+### 6. Publicar manualmente (desarrollo local)
+
+#### Opción A: Comandos simplificados (Recomendado)
+
+```powershell
+# Asegúrate de tener tokens configurados (solo primera vez)
+setx NPM_TOKEN "tu-token-de-npm"
+setx GH_TOKEN "tu-token-de-github"
+
+# Reinicia el terminal después de configurar tokens
+
+# Para publicar una nueva versión:
+pnpm run ship:patch   # Bugfixes:      1.0.0 → 1.0.1
+pnpm run ship:minor   # Nuevas features: 1.0.0 → 1.1.0
+pnpm run ship:major   # Breaking changes: 1.0.0 → 2.0.0
+```
+
+Cada comando `ship:*` hace automáticamente:
+1. Incrementa la versión en `package.json`
+2. Compila el proyecto (`pnpm run build`)
+3. Publica a npm (`pnpm run release`)
+
+#### Opción B: Proceso manual paso a paso
+
+```powershell
+# 1. Asegúrate de tener commits con formato convencional
+git log --oneline -5  # Verifica que tengas commits feat: o fix:
+
+# 2. Si NO tienes commits convencionales, crea uno:
+git add .
+git commit -m "feat: agrega nuevas funcionalidades"
+
+# 3. Compila el proyecto
+pnpm run build
+
+# 4. Publica (semantic-release calculará la versión automáticamente)
+npx semantic-release --no-ci
+```
+
+#### Opción C: Solo para testing (no publica a npm)
+
+```powershell
+# Ver qué versión se generaría sin publicar
+pnpm run release  # Corre en dry-run mode localmente
+```
+
+#### Troubleshooting
+
+**Problema: "There are no relevant changes, so no new version is released"**
+```powershell
+# Solución: Necesitas commits con formato convencional
+git add .
+git commit -m "feat: describe tus cambios aquí"
+pnpm run build
+npx semantic-release --no-ci
+```
+
+**Problema: "ENOTOKEN" o "npm ERR! need auth"**
+```powershell
+# Solución: Configura tu token de npm
+# Genera un token en: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+setx NPM_TOKEN "npm_XXXXXXXXXXXXXXXXXXXX"
+# Reinicia el terminal
+```
+
+**Problema: La versión no se actualiza en otros proyectos**
+```powershell
+# Después de publicar, ve al proyecto que consume @pulz-ar/core:
+cd ..\pulzar-web
+pnpm update @pulz-ar/core --latest
+```
+
+### 7. Reglas importantes
+
+❌ **NO hagas:**
+- `npm version major/minor/patch` manualmente (usa `ship:*`)
+- Editar `package.json` manualmente para cambiar versión
+- Hacer push sin commits convencionales si esperas un release
+
+✅ **SÍ haz:**
+- Usa mensajes de commit convencionales (`feat:`, `fix:`)
+- Deja que semantic-release calcule la versión
+- Usa comandos `pnpm run ship:*` para publicaciones locales
+- Verifica que la versión se publicó: `npm view @pulz-ar/core versions` 
