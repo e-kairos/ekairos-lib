@@ -23,6 +23,7 @@ export type TransformDatasetContext = {
     sourcePreviews?: Array<{ datasetId: string; preview: TransformSourcePreviewContext }>
     errors: string[]
     iterationCount: number
+    instructions?: string
 }
 
 export type TransformDatasetAgentOptions = {
@@ -30,6 +31,7 @@ export type TransformDatasetAgentOptions = {
     outputSchema: any
     sandbox: Sandbox
     service: DatasetService
+    instructions?: string
 } & AgentOptions
 
 class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
@@ -38,6 +40,7 @@ class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
     private outputSchema: any
     private sandbox: Sandbox
     private service: DatasetService
+    private instructions?: string
     private isSandboxInitialized: boolean = false
     private sandboxSourcePaths: Array<{ datasetId: string; path: string }> = []
 
@@ -48,6 +51,7 @@ class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
         this.outputSchema = opts.outputSchema
         this.sandbox = opts.sandbox
         this.service = opts.service
+        this.instructions = opts.instructions
     }
 
     public getDatasetId(): string {
@@ -153,6 +157,7 @@ class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
             sourcePreviews: sourcePreviews.length > 0 ? sourcePreviews : undefined,
             errors: [],
             iterationCount: 0,
+            instructions: this.instructions,
         }
     }
 
@@ -168,7 +173,14 @@ class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
             sourcePreviews: context.content.sourcePreviews,
             errors: context.content.errors,
         }
-        return buildTransformDatasetPrompt(promptContext)
+        let basePrompt = buildTransformDatasetPrompt(promptContext)
+        
+        // Append instructions if provided
+        if (context.content.instructions) {
+            basePrompt += `\n\n## ADDITIONAL CONTEXT AND INSTRUCTIONS\n\n${context.content.instructions}`
+        }
+        
+        return basePrompt
     }
 
     protected async buildTools(context: StoredContext<TransformDatasetContext>, dataStream: DataStreamWriter): Promise<Record<string, Tool>> {
@@ -236,13 +248,15 @@ export class TransformDatasetAgent {
     private sandbox: Sandbox
     private service: DatasetService
     private agentService: AgentService
+    private instructions?: string
 
-    constructor(params: { sourceDatasetIds: string | string[]; outputSchema: any; sandbox: Sandbox }) {
+    constructor(params: { sourceDatasetIds: string | string[]; outputSchema: any; sandbox: Sandbox; instructions?: string }) {
         this.sourceDatasetIds = Array.isArray(params.sourceDatasetIds) ? params.sourceDatasetIds : [params.sourceDatasetIds]
         this.outputSchema = params.outputSchema
         this.sandbox = params.sandbox
         this.service = new DatasetService()
         this.agentService = new AgentService()
+        this.instructions = params.instructions
     }
 
     async getDataset(): Promise<TransformDatasetResult> {
@@ -251,6 +265,7 @@ export class TransformDatasetAgent {
             outputSchema: this.outputSchema,
             sandbox: this.sandbox,
             service: this.service,
+            instructions: this.instructions,
         })
 
         const datasetId = internalAgent.getDatasetId()
@@ -307,6 +322,7 @@ export class TransformDatasetAgent {
             outputSchema: this.outputSchema,
             sandbox: this.sandbox,
             service: this.service,
+            instructions: this.instructions,
         })
 
         const userEvent = {

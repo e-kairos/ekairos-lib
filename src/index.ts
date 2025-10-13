@@ -1,3 +1,4 @@
-export * from "./agent";
-export { domain as createDomain } from "./domain";
-export { agentDomain } from "./agent/schema";
+// Package exports are organized by subpath:
+// - @pulz-ar/core/agent
+// - @pulz-ar/core/dataset
+// - @pulz-ar/core/domain

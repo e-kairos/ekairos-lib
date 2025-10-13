@@ -1,5 +1,6 @@
 import { init, id, tx, lookup, InstaQLEntity } from "@instantdb/admin"
 import { convertToModelMessages, createUIMessageStream, generateText, ModelMessage, smoothStream, stepCountIs, streamText, Tool, tool, UIMessageStreamWriter } from "ai"
+import { openai } from "@ai-sdk/openai"
 import { agentDomain } from "./schema"
 import { z } from "zod"
 
@@ -37,12 +38,20 @@ export interface AgentOptions {
   onEnd?: (lastEvent: ContextEvent) => void | { end?: boolean } | Promise<void | { end?: boolean }>
 }
 
+export interface ReactStreamOptions {
+  reasoningEffort?: "low" | "medium" | "high"
+  webSearch?: boolean
+}
+
 export type DataStreamWriter = UIMessageStreamWriter<AgentMessage>
 const createDataStream = createUIMessageStream;
 
 
 export abstract class Agent<Context> {
-  protected db = init({ appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string, adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string, schema: agentDomain.schema() })
+  protected db = init({ 
+    appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string, 
+    adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string
+  })
   protected agentService: AgentService
 
   constructor(private opts: AgentOptions = {}) {
@@ -133,7 +142,8 @@ export abstract class Agent<Context> {
 
   public async reactStream(
     incomingEvent: ContextEvent,
-    contextIdentifier: ContextIdentifier | null
+    contextIdentifier: ContextIdentifier | null,
+    options?: ReactStreamOptions
   ) {
 
     // get or create context
@@ -188,6 +198,11 @@ export abstract class Agent<Context> {
           const baseTools = this.getBaseTools(dataStream, updatedContext.id)
           const tools: Record<string, Tool> = { ...subclassToolsAll, ...baseTools }
 
+          // Add web search if enabled
+          if (options?.webSearch) {
+            tools.web_search = openai.tools.webSearch() as any
+          }
+
           // Extract execute functions from tools
           const executeMap: Record<string, (args: any) => Promise<any>> = {}
           for (const [name, t] of Object.entries(subclassToolsAll)) {
@@ -215,7 +230,15 @@ export abstract class Agent<Context> {
           )
 
           const systemPrompt = await this.buildSystemPrompt(updatedContext)
-          
+
+          const providerOptions: any = {}
+          if (options?.reasoningEffort) {
+            providerOptions.openai = {
+              reasoningEffort: options.reasoningEffort,
+              reasoningSummary: 'detailed',
+            }
+          }
+
           const result = streamText({
             model: this.getModel(updatedContext),
             system: systemPrompt,
@@ -225,16 +248,12 @@ export abstract class Agent<Context> {
             onStepFinish: (step) => {
               console.log("onStepFinish", step)
             },
-            stopWhen: stepCountIs(1), // Stop at step 5 if tools were called
+            stopWhen: stepCountIs(1),
             experimental_transform: smoothStream({
-              delayInMs: 30, // optional: defaults to 10ms
-              chunking: 'word', // optional: defaults to 'word'
+              delayInMs: 30,
+              chunking: 'word',
             }),
-            providerOptions: {
-              openai: {
-                reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-              },
-            }
+            ...(Object.keys(providerOptions).length > 0 && { providerOptions }),
           })
 
           result.consumeStream()

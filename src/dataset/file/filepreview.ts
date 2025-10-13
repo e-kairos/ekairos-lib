@@ -80,7 +80,8 @@ export async function ensurePreviewScriptsAvailable(sandbox: Sandbox): Promise<v
     }
 
     const setupPromise = (async () => {
-        const localScriptsDirectory = join(process.cwd(), "lib", "domain", "dataset", "file", "scripts")
+        // Use __dirname to find scripts relative to this module, not process.cwd()
+        const localScriptsDirectory = join(__dirname, "scripts")
 
         let scriptFileNames: string[]
         try {
@@ -282,7 +283,8 @@ async function runScript(
     let scriptContent = ""
 
     try {
-        const localScriptPath = join(process.cwd(), 'lib', 'domain', 'dataset', 'file', 'scripts', scriptName)
+        // Use __dirname to find scripts relative to this module, not process.cwd()
+        const localScriptPath = join(__dirname, 'scripts', scriptName)
         scriptContent = readFileSync(localScriptPath, 'utf-8')
     }
     catch (error) {
