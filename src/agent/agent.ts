@@ -1,4 +1,4 @@
-import { init, id, tx, lookup, InstaQLEntity, InstantAdminDatabase } from "@instantdb/admin"
+import { init, id, tx, lookup, InstaQLEntity } from "@instantdb/admin"
 import { convertToModelMessages, createUIMessageStream, generateText, ModelMessage, smoothStream, stepCountIs, streamText, Tool, tool, UIMessageStreamWriter } from "ai"
 import { agentDomain } from "./schema"
 import { z } from "zod"
@@ -7,7 +7,6 @@ import { UIMessage } from 'ai';
 import { initLogger } from "braintrust";
 import { AgentService, ContextEvent, ContextIdentifier, StoredContext } from "./service";
 import { ASSISTANT_MESSAGE_TYPE, convertEventsToModelMessages, convertEventToModelMessages, convertModelMessageToEvent, createAssistantEventFromUIMessages, createUserEventFromUIMessages, ResponseMessage, SYSTEM_MESSAGE_TYPE } from "./events";
-import { SchemaOf } from "../domain";
 
 // Inicializar Braintrust logger
 const logger = initLogger({
@@ -35,24 +34,19 @@ export interface AgentOptions {
   onEventCreated?: (event: any) => void | Promise<void>
   evaluateToolCalls?: (toolCalls: any[]) => Promise<{ success: boolean; message?: string }>
   onToolCallExecuted?: (executionEvent: any) => void | Promise<void>
-  onEnd?: () => void | Promise<void>
+  onEnd?: (lastEvent: ContextEvent) => void | { end?: boolean } | Promise<void | { end?: boolean }>
 }
 
 export type DataStreamWriter = UIMessageStreamWriter<AgentMessage>
 const createDataStream = createUIMessageStream;
 
-type AgentSchemaType = SchemaOf<typeof agentDomain>;
 
 export abstract class Agent<Context> {
+  protected db = init({ appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string, adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string, schema: agentDomain.schema() })
+  protected agentService: AgentService
 
-  private readonly db: InstantAdminDatabase<AgentSchemaType>;
-  private readonly opts: AgentOptions;
-  private readonly agentService: AgentService;
-
-  constructor(db: InstantAdminDatabase<AgentSchemaType>, opts: AgentOptions = {}) {
-    this.db = db
-    this.opts = opts
-    this.agentService = new AgentService(db)
+  constructor(private opts: AgentOptions = {}) {
+    this.agentService = new AgentService()
   }
 
   protected abstract buildSystemPrompt(context: StoredContext<Context>, ...args: any[]): Promise<string> | string
@@ -63,35 +57,52 @@ export abstract class Agent<Context> {
     return "openai/gpt-5"
   }
 
+  protected includeBaseTools(): { createMessage: boolean; requestDirection: boolean; end: boolean } {
+    return { createMessage: true, requestDirection: true, end: true }
+  }
+
+  protected async getFinalizationToolNames(): Promise<string[]> {
+    return []
+  }
+
   private static readonly FINAL_TOOL_NAMES = ["createMessage", "requestDirection", "end"]
 
   protected getBaseTools(dataStream: DataStreamWriter, threadId: string): Record<string, Tool> {
-    const createMessageTool = tool({
-      description: "Send a message to the user. Use for final confirmations or information.",
-      inputSchema: z.object({
-        message: z.string().describe("Message for the user in markdown format")
-      }),
-    })
+    const include = this.includeBaseTools()
+    const baseTools: Record<string, Tool> = {}
 
-    const requestDirectionTool = tool({
-      description: "Ask a human for guidance when blocked or unsure.",
-      inputSchema: z.object({
-        issue: z.string(),
-        context: z.string(),
-        suggestedActions: z.array(z.string()).optional(),
-        urgency: z.enum(["low", "medium", "high"]).default("medium"),
-      }),
-    })
+    if (include.createMessage) {
+      baseTools.createMessage = tool({
+        description: "Send a message to the user. Use for final confirmations or information.",
+        inputSchema: z.object({
+          message: z.string().describe("Message for the user in markdown format")
+        }),
+      })
+    }
 
-    const endTool = tool({
-      description: "End the current interaction loop.",
-      inputSchema: z.object({}).strict(),
-      execute: async () => {
-        return { success: true, message: "Ended" }
-      },
-    })
+    if (include.requestDirection) {
+      baseTools.requestDirection = tool({
+        description: "Ask a human for guidance when blocked or unsure.",
+        inputSchema: z.object({
+          issue: z.string(),
+          context: z.string(),
+          suggestedActions: z.array(z.string()).optional(),
+          urgency: z.enum(["low", "medium", "high"]).default("medium"),
+        }),
+      })
+    }
 
-    return { createMessage: createMessageTool, requestDirection: requestDirectionTool, end: endTool }
+    if (include.end) {
+      baseTools.end = tool({
+        description: "End the current interaction loop.",
+        inputSchema: z.object({}).strict(),
+        execute: async () => {
+          return { success: true, message: "Ended" }
+        },
+      })
+    }
+
+    return baseTools
   }
 
   protected async executeCreateMessage(
@@ -131,17 +142,16 @@ export abstract class Agent<Context> {
     // save incoming event
     await this.agentService.saveEvent({ id: currentContext.id }, incomingEvent)
 
-    
+
     const dataStreamResult = createDataStream({
       execute: async ({ writer: dataStream }: { writer: DataStreamWriter }) => {
         let loopSafety = 0
-        const MAX_LOOPS = 10
+        const MAX_LOOPS = 20
 
         // load previous events
         const previousEvents = await this.agentService.getEvents({ id: currentContext.id })
 
-        const events: ContextEvent[] = [...previousEvents, incomingEvent]
-
+        const events: ContextEvent[] = previousEvents
         const contextId = currentContext.id
 
         const eventId = id()
@@ -185,27 +195,36 @@ export abstract class Agent<Context> {
               executeMap[name] = (t as any).execute as (args: any) => Promise<any>
             }
           }
-          executeMap["createMessage"] = (args: any) => this.executeCreateMessage(eventId, args, updatedContext.id, dataStream)
-          executeMap["requestDirection"] = (args: any) => this.executeRequestDirection(eventId, args, updatedContext.id, dataStream)
+
+          const include = this.includeBaseTools()
+          if (include.createMessage) {
+            executeMap["createMessage"] = (args: any) => this.executeCreateMessage(eventId, args, updatedContext.id, dataStream)
+          }
+          if (include.requestDirection) {
+            executeMap["requestDirection"] = (args: any) => this.executeRequestDirection(eventId, args, updatedContext.id, dataStream)
+          }
 
           for (const [, t] of Object.entries(tools)) {
             delete (t as any).execute
           }
 
-          const messagesForModel: ModelMessage[] = convertEventsToModelMessages(
+          const messagesForModel: ModelMessage[] = await convertEventsToModelMessages(
             reactionEvent.status !== "pending"
               ? [...events, reactionEvent]
               : [...events]
           )
 
           const systemPrompt = await this.buildSystemPrompt(updatedContext)
-
+          
           const result = streamText({
             model: this.getModel(updatedContext),
             system: systemPrompt,
             messages: messagesForModel,
             tools,
             toolChoice: "required",
+            onStepFinish: (step) => {
+              console.log("onStepFinish", step)
+            },
             stopWhen: stepCountIs(1), // Stop at step 5 if tools were called
             experimental_transform: smoothStream({
               delayInMs: 30, // optional: defaults to 10ms
@@ -283,113 +302,157 @@ export abstract class Agent<Context> {
             return acc;
           }, []);
 
+          console.log("agent.toolCalls.detected", {
+            eventId,
+            toolCalls: toolCalls.map((call: any) => ({ toolCallId: call.toolCallId, toolName: call.toolName }))
+          });
+
           if (!toolCalls.length) {
-            await this.opts.onEnd?.()
-            break
+            const shouldEndInteraction = await this.callOnEnd(lastEvent)
+            if (shouldEndInteraction) {
+              break
+            }
+            continue
           }
-          const tc = toolCalls[0]
-          if (tc.toolName === "end") {
-            try { await this.opts.onEnd?.() } catch { }
-            return
-          }
-
-
-          // append parts to reactionEvent
           const reactionEventWithParts = {
             ...reactionEvent,
             content: { parts: [...reactionEvent.content.parts, ...lastEvent.content.parts] },
           }
 
-          const savedEvent = await this.agentService.updateEvent(reactionEvent.id, reactionEventWithParts)
+          let currentEventState = await this.agentService.updateEvent(reactionEvent.id, reactionEventWithParts)
 
-          //await this.opts.onEventCreated?.({ id: savedEvent.id, type: eventType, status: "processing" })
+          const executionResults = await Promise.all(toolCalls.map(async (tc: any) => {
+            console.log("agent.toolCall.selected", {
+              eventId,
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName
+            })
 
-          let execSuccess = true
-          let execMessage = "Executed"
-          let execResult: any = null
-          try {
-            const execFn = executeMap[tc.toolName]
-            if (execFn) {
-              execResult = await execFn(tc.args)
-              execSuccess = execResult?.success !== false
-              execMessage = execResult?.message || execMessage
+            let execSuccess = true
+            let execMessage = "Executed"
+            let execResult: any = null
+            try {
+              const execFn = executeMap[tc.toolName]
+              if (execFn) {
+                console.log("agent.toolCall.execute.start", { toolCallId: tc.toolCallId, toolName: tc.toolName })
+                execResult = await execFn(tc.args)
+                execSuccess = execResult?.success !== false
+                execMessage = execResult?.message || execMessage
+                console.log("agent.toolCall.execute.success", {
+                  toolCallId: tc.toolCallId,
+                  toolName: tc.toolName,
+                  success: execSuccess
+                })
+                console.log("agent.toolCall.execute.result", {
+                  toolCallId: tc.toolCallId,
+                  toolName: tc.toolName,
+                  result: execResult
+                })
+              }
             }
-          } catch (err: any) {
-            execSuccess = false
-            execMessage = err.message
-          }
-          // Notify client about tool result via data stream
-          try {
-            if (execSuccess) {
-              dataStream.write({
-                type: "tool-output-available",
+            catch (err: any) {
+              execSuccess = false
+              execMessage = err.message
+              console.error("agent.toolCall.execute.error", {
                 toolCallId: tc.toolCallId,
-                output: execResult,
-              } as any)
-            } else {
-              dataStream.write({
-                type: "tool-output-error",
-                toolCallId: tc.toolCallId,
-                errorText: String(execMessage || "Error"),
-              } as any)
+                toolName: tc.toolName,
+                error: err
+              })
             }
 
-          } catch (e) {
-            console.error("Failed to write tool result to stream", e)
-          }
+            return { tc, execSuccess, execMessage, execResult }
+          }))
 
-          // parts
-          const existingParts = reactionEventWithParts?.content?.parts || []
+          let exitOuterLoop = false
+          const customFinalizationTools = await this.getFinalizationToolNames()
+          const allFinalToolNames = [...Agent.FINAL_TOOL_NAMES, ...customFinalizationTools]
 
-          // replace the tool part in existingParts
-          const mergedParts = existingParts.map((p: any) => {
-            if (p.type === `tool-${tc.toolName}` && p.toolCallId === tc.toolCallId) {
+          for (const { tc, execSuccess, execMessage, execResult } of executionResults) {
+            try {
               if (execSuccess) {
-                return {
-                  ...p,
-                  state: "output-available",
+                dataStream.write({
+                  type: "tool-output-available",
+                  toolCallId: tc.toolCallId,
                   output: execResult,
+                } as any)
+              }
+              else {
+                dataStream.write({
+                  type: "tool-output-error",
+                  toolCallId: tc.toolCallId,
+                  errorText: String(execMessage || "Error"),
+                } as any)
+              }
+            }
+            catch (e) {
+              console.error("Failed to write tool result to stream", e)
+            }
+
+            const existingParts = currentEventState?.content?.parts || []
+            const mergedParts = existingParts.map((p: any) => {
+              if (p.type === `tool-${tc.toolName}` && p.toolCallId === tc.toolCallId) {
+                if (execSuccess) {
+                  return {
+                    ...p,
+                    state: "output-available",
+                    output: execResult,
+                  }
                 }
-              } else {
                 return {
                   ...p,
                   state: "output-error",
                   errorText: String(execMessage || "Error"),
                 }
               }
+              return p
+            })
+
+            currentEventState = await this.agentService.updateEvent(currentEventState.id, {
+              id: currentEventState.id,
+              type: currentEventState.type,
+              channel: "agent",
+              createdAt: currentEventState.createdAt,
+              content: { parts: mergedParts },
+            })
+
+            dataStream.write({ type: "finish-step" })
+
+            await this.opts.onToolCallExecuted?.({
+              id: currentEventState.id,
+              toolCall: tc,
+              event: currentEventState.id,
+              success: execSuccess,
+              message: execMessage,
+              result: execResult,
+            })
+
+            let shouldEnd = false
+            if (!execSuccess) {
+              const shouldEndInteraction = await this.callOnEnd(lastEvent)
+              if (shouldEndInteraction) {
+                shouldEnd = true
+              }
             }
-            return p
-          })
 
-          const updatedEvent = await this.agentService.updateEvent(savedEvent.id, {
-            id: savedEvent.id,
-            type: savedEvent.type,
-            channel: "agent",
-            createdAt: savedEvent.createdAt,
-            content: { parts: mergedParts }
-          })
+            if (!shouldEnd) {
+              if (allFinalToolNames.includes(tc.toolName)) {
+                const shouldEndInteraction = await this.callOnEnd(lastEvent)
+                if (shouldEndInteraction) {
+                  shouldEnd = true
+                }
+              }
+            }
 
-          reactionEvent = updatedEvent
-
-          // Close the current step and message on the client
-          dataStream.write({ type: "finish-step" })
-
-          await this.opts.onToolCallExecuted?.({ id: updatedEvent.id, toolCall: tc, event: updatedEvent.id, success: execSuccess, message: execMessage, result: execResult })
-
-          let shouldEnd = false
-          if (!execSuccess) {
-            try { await this.opts.onEnd?.() } catch { }
-            shouldEnd = true
+            if (shouldEnd) {
+              dataStream.write({ type: "finish", override: true } as any)
+              exitOuterLoop = true
+              break
+            }
           }
 
-          const loopShouldEnd = toolCalls.some((t: { toolName: string }) => Agent.FINAL_TOOL_NAMES.includes(t.toolName))
-          if (loopShouldEnd) {
-            try { await this.opts.onEnd?.() } catch { }
-            shouldEnd = true
-          }
+          reactionEvent = currentEventState
 
-          if (shouldEnd) {
-            dataStream.write({ type: "finish", override: true } as any)
+          if (exitOuterLoop) {
             break
           }
         }
@@ -431,6 +494,28 @@ export abstract class Agent<Context> {
   private async saveMessagesToThread(threadId: string, messages: Array<any>) {
     // Placeholder for persistence hook. Not implemented in current scope.
     return
+  }
+
+  private async callOnEnd(lastEvent: ContextEvent): Promise<boolean> {
+    if (!this.opts.onEnd) {
+      return true
+    }
+
+    try {
+      const result = await this.opts.onEnd(lastEvent)
+      if (typeof result === "boolean") {
+        return result
+      }
+      if (result && typeof result === "object") {
+        if (Object.prototype.hasOwnProperty.call(result, "end")) {
+          return Boolean(result.end)
+        }
+      }
+      return true
+    } catch (error) {
+      console.error("onEnd callback failed", error)
+      return true
+    }
   }
 
 

@@ -1,50 +1,38 @@
-import { id, init, lookup, InstantAdminDatabase } from "@instantdb/admin";
-import type { agentDomain } from "./schema";
-import { SchemaOf } from "../domain";
+import { id, init, InstaQLEntity, lookup } from "@instantdb/admin"
+import { agentDomain } from "./schema"
 
-const dbDefault = init({
-    appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string,
-    adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string,
-});
+export type StoredContext<Context> = Omit<InstaQLEntity<typeof agentDomain, 'agent_contexts'>, 'content'> & { content: Context }
+export type ContextIdentifier = { id: string; key?: never } | { key: string; id?: never }
 
-export type StoredContext<Context> = {
-    id: string;
-    createdAt: string | number;
-    updatedAt?: string | number;
-    type?: string;
-    key?: string | null;
-    content: Context;
+export type ContextEvent = InstaQLEntity<typeof agentDomain, 'agent_events'> & { content: any }
+
+export type StreamChunk = {
+    type: string
+    messageId?: string
+    content?: string
+    [key: string]: unknown
 }
-
-export type ContextEvent = {
-    id: string;
-    channel: string;
-    createdAt: string | number;
-    type?: string;
-    content: any;
-    status?: string;
-}
-
-export type ContextIdentifier = { id: string } | { key: string };
-
-type AgentSchemaType = SchemaOf<typeof agentDomain>;
 
 export class AgentService {
 
-    private readonly db: InstantAdminDatabase<AgentSchemaType>;
+    private db: ReturnType<typeof init>
 
-    constructor(db: InstantAdminDatabase<AgentSchemaType>) {
-        this.db = db
+    constructor() {
+        this.db = init({
+            appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string,
+            adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string, 
+            schema: agentDomain.schema()
+        })
     }
 
-    public async getOrCreateContext<C>(contextIdentifier: { id: string } | { key: string } | null): Promise<StoredContext<C>> {
+    public async getOrCreateContext<C>(contextIdentifier: ContextIdentifier | null): Promise<StoredContext<C>> {
         if (!contextIdentifier) {
             return this.createContext<C>()
         }
 
         let context = await this.getContext<C>(contextIdentifier)
         if (!context) {
-            return this.createContext<C>(("key" in contextIdentifier) ? { key: contextIdentifier.key } : null)
+            return this.createContext<C>(contextIdentifier.key ? { key: contextIdentifier.key } : null)
         } else {
             return context
         }
@@ -66,46 +54,42 @@ export class AgentService {
         }
 
         await this.db.transact([
-            this.db.tx.agent_contexts[contextId].create({
-                createdAt: contextData.createdAt.toISOString(),
-                content: contextData.content,
-                key: contextData.key,
-            })
+            this.db.tx.agent_contexts[contextId].create(contextData)
         ])
         return this.getContext<C>({ id: contextId })
     }
 
-    public async getContext<C>(contextIdentifier: { id: string } | { key: string }): Promise<StoredContext<C>> {
+    public async getContext<C>(contextIdentifier: ContextIdentifier): Promise<StoredContext<C>> {
         let context;
         try {
-            if ("id" in contextIdentifier) {
+            if (contextIdentifier.id) {
                 const tRes = await this.db.query({
                     agent_contexts: {
                         $: { where: { id: contextIdentifier.id }, limit: 1 }
                     }
                 })
-                context = (tRes as any).agent_contexts?.[0]
+                context = tRes.agent_contexts?.[0]
             }
 
-            if ("key" in contextIdentifier) {
+            if (contextIdentifier.key) {
                 const tRes = await this.db.query({
                     agent_contexts: {
                         $: { where: { key: contextIdentifier.key } }
                     }
                 })
-                context = (tRes as any).agent_contexts?.[0]
+                context = tRes.agent_contexts?.[0]
             }
 
             return context as StoredContext<C>
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error("Error getting context", error)
-            throw new Error("Error getting context")
+            throw new Error("Error getting context: " + error.message)
         }
     }
 
-    public async updateContextContent<C>(contextIdentifier: { id: string } | { key: string }, content: C): Promise<StoredContext<C>> {
+    public async updateContextContent<C>(contextIdentifier: ContextIdentifier, content: C): Promise<StoredContext<C>> {
 
-        const contextDBIdentifier = ("id" in contextIdentifier) ? contextIdentifier.id : (lookup("key", contextIdentifier.key) as any)
+        const contextDBIdentifier = contextIdentifier.id ?? lookup("key", contextIdentifier.key)
 
         await this.db.transact([
             this.db.tx.agent_contexts[contextDBIdentifier].update({
@@ -117,18 +101,15 @@ export class AgentService {
         return this.getContext<C>(contextIdentifier)
     }
 
-    public async saveEvent(contextIdentifier: { id: string } | { key: string }, event: ContextEvent): Promise<ContextEvent> {
+    public async saveEvent(contextIdentifier: ContextIdentifier, event: ContextEvent): Promise<ContextEvent> {
         const txs = [
             this.db.tx.agent_events[event.id].create({
-                createdAt: typeof event.createdAt === 'string' || typeof event.createdAt === 'number' ? event.createdAt : new Date().toISOString(),
-                channel: event.channel,
-                type: event.type,
-                content: event.content,
-                status: "stored",
+                ...event,
+                status: "stored"
             })
         ]
 
-        if ("id" in contextIdentifier) {
+        if (contextIdentifier.id) {
             txs.push(this.db.tx.agent_events[event.id].link({ context: contextIdentifier.id }))
         } else {
             txs.push(this.db.tx.agent_events[event.id].link({ context: lookup("key", contextIdentifier.key) }))
@@ -155,10 +136,10 @@ export class AgentService {
         return event.agent_events?.[0] as ContextEvent
     }
 
-    public async getEvents(contextIdentifier: { id: string } | { key: string }): Promise<ContextEvent[]> {
+    public async getEvents(contextIdentifier: ContextIdentifier): Promise<ContextEvent[]> {
 
-        let contextWhere: { context: string };
-        if ("id" in contextIdentifier) {
+        let contextWhere;
+        if (contextIdentifier.id) {
             contextWhere = { context: contextIdentifier.id }
         } else {
             contextWhere = { context: lookup("key", contextIdentifier.key) }
@@ -167,7 +148,7 @@ export class AgentService {
         const events = await this.db.query({
             agent_events: {
                 $: {
-                    where: contextWhere as any,
+                    where: contextWhere,
                     limit: 30,
                     order: {
                         createdAt: 'desc',
@@ -176,5 +157,51 @@ export class AgentService {
             }
         })
         return events.agent_events as ContextEvent[]
+    }
+
+    public async readEventStream(stream: ReadableStream): Promise<{
+        eventId: string | undefined
+        chunks: StreamChunk[]
+        persistedEvent: any
+    }> {
+        const reader = stream.getReader()
+        const chunks: StreamChunk[] = []
+        let firstChunk: StreamChunk | undefined
+
+        while (true) {
+            const { value, done } = await reader.read()
+            if (done) {
+                break
+            }
+            const currentChunk = value as StreamChunk
+            if (!firstChunk) {
+                firstChunk = currentChunk
+            }
+            chunks.push(currentChunk)
+        }
+
+        if (!firstChunk) {
+            throw new Error("No chunks received from stream")
+        }
+
+        const eventId = firstChunk.messageId
+
+        const query = await this.db.query({
+            agent_events: {
+                $: {
+                    where: { id: eventId },
+                    limit: 1,
+                    fields: ["id", "channel", "type", "status", "createdAt", "content"],
+                },
+            },
+        })
+
+        const persistedEvent = Array.isArray(query.agent_events) ? query.agent_events[0] : undefined
+
+        return {
+            eventId,
+            chunks,
+            persistedEvent,
+        }
     }
 }

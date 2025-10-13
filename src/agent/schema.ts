@@ -1,5 +1,5 @@
 import { i } from "@instantdb/core";
-import { domain, SchemaOf } from "../domain";
+import { domain } from "../domain";
 
 const entities = {
   agent_contexts: i.entity({
@@ -19,6 +19,14 @@ const entities = {
 } as const;
 
 const links = {
+  agentContextsOrganization: {
+    forward: { on: "agent_contexts", has: "one", label: "organization" },
+    reverse: { on: "organizations", has: "many", label: "agent_contexts" },
+  },
+  agentEventsOrganization: {
+    forward: { on: "agent_events", has: "one", label: "organization" },
+    reverse: { on: "organizations", has: "many", label: "agent_events" },
+  },
   agentEventsContext: {
     forward: { on: "agent_events", has: "one", label: "context" },
     reverse: { on: "agent_contexts", has: "many", label: "events" },

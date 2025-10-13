@@ -1,6 +1,6 @@
 {
   "name": "@pulz-ar/core",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Pulzar Core",
   "homepage": "https://github.com/pulz-ar/pulzar-lib-core#readme",
   "bugs": {
@@ -27,13 +27,19 @@
     "build": "tsc -p tsconfig.json",
     "release": "semantic-release",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0",
+    "ship:major": "npm version major && pnpm run build && pnpm run release",
+    "ship:minor": "npm version minor && pnpm run build && pnpm run release",
+    "ship:patch": "npm version patch && pnpm run build && pnpm run release"
   },
   "dependencies": {
-    "@instantdb/admin": "^0.21.16",
-    "@instantdb/core": "^0.21.16",
+    "@instantdb/admin": "^0.22.13",
+    "@instantdb/core": "^0.22.13",
+    "@vercel/sandbox": "^0.0.23",
     "ai": "^5.0.44",
+    "ajv": "^8.17.1",
     "braintrust": "^0.3.7",
+    "xmlbuilder2": "^3.1.1",
     "zod": "^4.1.8"
   },
   "devDependencies": {
@@ -42,8 +48,10 @@
     "@semantic-release/npm": "^10.0.3",
     "@semantic-release/release-notes-generator": "^11.0.3",
     "@types/node": "^24.5.0",
+    "dotenv": "^17.2.3",
     "semantic-release": "^23.0.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "exports": {
     ".": {

@@ -123,6 +123,11 @@ setx NPM_TOKEN "<token>";
 setx GH_TOKEN "<token>";
 
 pnpm run release;
+
+# Comandos simplificados para versioning + build + release
+pnpm run ship:major;  # 1.0.0 -> 2.0.0
+pnpm run ship:minor;  # 1.0.0 -> 1.1.0
+pnpm run ship:patch;  # 1.0.0 -> 1.0.1
 ```
 
 No uses `npm version` ni edites `package.json`; todo lo gestiona semantic-release. 
