@@ -73,10 +73,20 @@
       "require": "./domain/index.js",
       "default": "./domain/index.js"
     },
+    "./agent/domain": {
+      "types": "./dist/agent/index.d.ts",
+      "require": "./dist/agent/index.js",
+      "default": "./dist/agent/index.js"
+    },
     "./dataset": {
       "types": "./dataset/index.d.ts",
       "require": "./dataset/index.js",
       "default": "./dataset/index.js"
+    },
+    "./dataset/domain": {
+      "types": "./dist/dataset/index.d.ts",
+      "require": "./dist/dataset/index.js",
+      "default": "./dist/dataset/index.js"
     }
   }
 }
