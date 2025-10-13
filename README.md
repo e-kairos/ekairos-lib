@@ -228,15 +228,49 @@ cd ..\pulzar-web
 pnpm update @pulz-ar/core --latest
 ```
 
-### 7. Reglas importantes
+### 7. Desarrollo local: Link a proyectos que consumen @pulz-ar/core
+
+Para desarrollo local, puedes vincular este paquete directamente a proyectos que lo usan (como `pulzar-web`), para que los cambios se reflejen inmediatamente sin necesidad de publicar:
+
+```powershell
+# Desde pulzar-web (o cualquier proyecto que use @pulz-ar/core)
+cd c:\Users\aleja\storias\projects\pulzar\pulzar-web
+pnpm link ..\pulzar-lib-core
+
+# Ahora cuando hagas cambios en pulzar-lib-core:
+cd ..\pulzar-lib-core
+# ... edita archivos en src/ ...
+pnpm run build  # Compila los cambios
+
+# Los cambios están inmediatamente disponibles en pulzar-web
+```
+
+**Para deshacer el link y volver a la versión de npm:**
+```powershell
+cd c:\Users\aleja\storias\projects\pulzar\pulzar-web
+pnpm unlink @pulz-ar/core
+pnpm install @pulz-ar/core --force
+```
+
+**Verificar si estás usando link o npm:**
+```powershell
+# Verás algo como:
+# @pulz-ar/core 1.4.0 <- ..\pulzar-lib-core   (link activo)
+# @pulz-ar/core 1.4.0                         (versión de npm)
+pnpm list @pulz-ar/core
+```
+
+### 8. Reglas importantes
 
 ❌ **NO hagas:**
 - `npm version major/minor/patch` manualmente (usa `ship:*`)
 - Editar `package.json` manualmente para cambiar versión
 - Hacer push sin commits convencionales si esperas un release
+- Olvidar ejecutar `pnpm run build` después de cambios cuando uses link
 
 ✅ **SÍ haz:**
 - Usa mensajes de commit convencionales (`feat:`, `fix:`)
 - Deja que semantic-release calcule la versión
 - Usa comandos `pnpm run ship:*` para publicaciones locales
-- Verifica que la versión se publicó: `npm view @pulz-ar/core versions` 
+- Verifica que la versión se publicó: `npm view @pulz-ar/core versions`
+- Usa `pnpm link` para desarrollo local cross-repo 

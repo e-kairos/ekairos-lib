@@ -18,7 +18,8 @@
   "files": [
     "dist",
     "agent",
-    "domain"
+    "domain",
+    "dataset"
   ],
   "publishConfig": {
     "access": "public"
@@ -68,6 +69,11 @@
       "types": "./domain/index.d.ts",
       "require": "./domain/index.js",
       "default": "./domain/index.js"
+    },
+    "./dataset": {
+      "types": "./dataset/index.d.ts",
+      "require": "./dataset/index.js",
+      "default": "./dataset/index.js"
     }
   }
 }
