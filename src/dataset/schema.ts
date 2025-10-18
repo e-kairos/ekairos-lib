@@ -35,6 +35,10 @@ const links = {
     forward: { on: "dataset_datasets", has: "many", label: "records" },
     reverse: { on: "dataset_records", has: "one", label: "dataset" },
   },
+  dataset_datasetsFiles: {
+    forward: { on: "dataset_datasets", has: "one", label: "dataFile" },
+    reverse: { on: "$files", has: "many", label: "datasets" },
+  },
 } as const
 
 const rooms = {} as const

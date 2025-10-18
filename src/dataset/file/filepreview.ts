@@ -1,5 +1,5 @@
 import { Sandbox } from "@vercel/sandbox"
-import { readFileSync, readdirSync } from "fs"
+import { readFileSync } from "fs"
 import { join } from "path"
 
 export type FilePreviewContext = {
@@ -41,10 +41,27 @@ interface PreviewOptions {
 }
 
 const DEFAULT_HEAD_LINES = 50
-const DEFAULT_TAIL_LINES = 50
-const DEFAULT_MID_LINES = 50
+const DEFAULT_TAIL_LINES = 20
+const DEFAULT_MID_LINES = 20
 
 const SANDBOX_SCRIPT_DIRECTORY = "/vercel/sandbox/lib/domain/dataset/file/scripts"
+
+const PYTHON_SCRIPT_FILES = [
+    "file_metadata.py",
+    "preview_head_csv.py",
+    "preview_head_excel.py",
+    "preview_mid_csv.py",
+    "preview_mid_excel.py",
+    "preview_tail_csv.py",
+    "preview_tail_excel.py",
+]
+
+const nodeRequire: NodeJS.Require = eval("require")
+
+function resolveScriptPath(scriptName: string): string
+{
+    return nodeRequire.resolve(`@pulz-ar/core/dataset/file/scripts/${scriptName}`)
+}
 
 const preparedSandboxes = new WeakSet<Sandbox>()
 const sandboxSetupPromises = new WeakMap<Sandbox, Promise<void>>()
@@ -80,30 +97,6 @@ export async function ensurePreviewScriptsAvailable(sandbox: Sandbox): Promise<v
     }
 
     const setupPromise = (async () => {
-        // Use __dirname to find scripts relative to this module, not process.cwd()
-        const localScriptsDirectory = join(__dirname, "scripts")
-
-        let scriptFileNames: string[]
-        try {
-            scriptFileNames = readdirSync(localScriptsDirectory)
-        }
-        catch (error) {
-            console.error("[Dataset Scripts] Failed to list local scripts", error)
-            throw error
-        }
-
-        const pythonScriptNames: string[] = []
-        for (const fileName of scriptFileNames) {
-            if (fileName.endsWith(".py")) {
-                pythonScriptNames.push(fileName)
-            }
-        }
-
-        if (pythonScriptNames.length === 0) {
-            console.warn("[Dataset Scripts] No Python scripts found to sync")
-            return
-        }
-
         try {
             await sandbox.runCommand({
                 cmd: "mkdir",
@@ -116,10 +109,10 @@ export async function ensurePreviewScriptsAvailable(sandbox: Sandbox): Promise<v
 
         const filesToWrite = [] as { path: string; content: Buffer }[]
 
-        for (const scriptName of pythonScriptNames) {
-            const localPath = join(localScriptsDirectory, scriptName)
+        for (const scriptName of PYTHON_SCRIPT_FILES) {
             try {
-                const fileBuffer = readFileSync(localPath)
+                const scriptPath = resolveScriptPath(scriptName)
+                const fileBuffer = readFileSync(scriptPath)
                 filesToWrite.push({
                     path: `${SANDBOX_SCRIPT_DIRECTORY}/${scriptName}`,
                     content: Buffer.from(fileBuffer),
@@ -283,8 +276,7 @@ async function runScript(
     let scriptContent = ""
 
     try {
-        // Use __dirname to find scripts relative to this module, not process.cwd()
-        const localScriptPath = join(__dirname, 'scripts', scriptName)
+        const localScriptPath = resolveScriptPath(scriptName)
         scriptContent = readFileSync(localScriptPath, 'utf-8')
     }
     catch (error) {

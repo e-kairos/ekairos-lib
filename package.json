@@ -87,6 +87,12 @@
       "types": "./dist/dataset/domain.d.ts",
       "require": "./dist/dataset/domain.js",
       "default": "./dist/dataset/domain.js"
+    },
+    "./dataset/file/scripts": {
+      "default": "./dist/dataset/file/scripts"
+    },
+    "./dataset/file/scripts/*": {
+      "default": "./dist/dataset/file/scripts/*"
     }
   }
 }

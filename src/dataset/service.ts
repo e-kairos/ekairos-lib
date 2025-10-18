@@ -375,6 +375,16 @@ export class DatasetService {
                 return { ok: false, error: "Failed to upload file to storage" }
             }
 
+            const linkResult = await this.linkFileToDataset({
+                datasetId: params.datasetId,
+                fileId: uploadResult.data.id,
+                storagePath,
+            })
+
+            if (!linkResult.ok) {
+                return linkResult
+            }
+
             return {
                 ok: true,
                 data: {
@@ -382,6 +392,120 @@ export class DatasetService {
                     storagePath,
                 },
             }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            return { ok: false, error: message }
+        }
+    }
+
+    async linkFileToDataset(params: {
+        datasetId: string
+        fileId: string
+        storagePath: string
+    }): Promise<ServiceResult<void>> {
+        try {
+            await this.db.transact([
+                this.db.tx.dataset_datasets[params.datasetId].link({ dataFile: params.fileId }),
+            ])
+
+            return { ok: true, data: undefined }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            return { ok: false, error: message }
+        }
+    }
+
+    async readRecordsFromFile(datasetId: string): Promise<ServiceResult<AsyncGenerator<any, void, unknown>>> {
+        try {
+            const fileQuery: any = await this.db.query({
+                dataset_datasets: {
+                    $: {
+                        where: { id: datasetId },
+                        limit: 1,
+                    },
+                    dataFile: {},
+                } as any, // FIX TYPE ERROR
+            })
+
+            const datasetRecord = fileQuery.dataset_datasets?.[0]
+            const dataFile = datasetRecord?.dataFile
+            const linkedFile = Array.isArray(dataFile) ? dataFile[0] : dataFile
+
+            if (!linkedFile || !linkedFile.url) {
+                return { ok: false, error: "Dataset output file not found" }
+            }
+
+            async function* createGenerator(url: string): AsyncGenerator<any, void, unknown> {
+                const response = await fetch(url)
+
+                if (!response.ok || !response.body) {
+                    throw new Error(`Failed to download dataset output file: ${response.status}`)
+                }
+
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder("utf-8")
+                let buffer = ""
+
+                while (true)
+                {
+                    const { value, done } = await reader.read()
+                    if (done) {
+                        break
+                    }
+
+                    buffer += decoder.decode(value, { stream: true })
+                    let newlineIndex = buffer.indexOf("\n")
+
+                    while (newlineIndex !== -1)
+                    {
+                        const line = buffer.slice(0, newlineIndex)
+                        buffer = buffer.slice(newlineIndex + 1)
+
+                        const trimmed = line.trim()
+                        if (trimmed.length === 0) {
+                            newlineIndex = buffer.indexOf("\n")
+                            continue
+                        }
+
+                        let parsed: any
+                        try {
+                            parsed = JSON.parse(trimmed)
+                        }
+                        catch (error)
+                        {
+                            console.error("Invalid JSON line in dataset output", error)
+                            newlineIndex = buffer.indexOf("\n")
+                            continue
+                        }
+
+                        if (parsed && parsed.type === "row") {
+                            yield { rowContent: parsed.data }
+                        }
+
+                        newlineIndex = buffer.indexOf("\n")
+                    }
+                }
+
+                buffer += decoder.decode()
+                const trimmed = buffer.trim()
+                if (trimmed.length > 0) {
+                    try {
+                        const parsed = JSON.parse(trimmed)
+                        if (parsed && parsed.type === "row") {
+                            yield { rowContent: parsed.data }
+                        }
+                    }
+                    catch (error)
+                    {
+                        console.error("Invalid JSON line in dataset output", error)
+                    }
+                }
+            }
+
+            const generator = createGenerator(linkedFile.url as string)
+            return { ok: true, data: generator }
         }
         catch (error) {
             const message = error instanceof Error ? error.message : String(error)

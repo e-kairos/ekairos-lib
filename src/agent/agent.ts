@@ -150,8 +150,10 @@ export abstract class Agent<Context> {
     const currentContext = await this.agentService.getOrCreateContext<Context>(contextIdentifier)
 
     // save incoming event
-    await this.agentService.saveEvent({ id: currentContext.id }, incomingEvent)
+    const triggerEvent = await this.agentService.saveEvent({ id: currentContext.id }, incomingEvent)
 
+    const triggerEventId = triggerEvent.id // trigger event id
+    const eventId = id() // reaction event id
 
     const dataStreamResult = createDataStream({
       execute: async ({ writer: dataStream }: { writer: DataStreamWriter }) => {
@@ -164,7 +166,6 @@ export abstract class Agent<Context> {
         const events: ContextEvent[] = previousEvents
         const contextId = currentContext.id
 
-        const eventId = id()
         let reactionEvent = await this.agentService.saveEvent({ id: currentContext.id }, {
           id: eventId,
           type: "assistant",
@@ -507,7 +508,12 @@ export abstract class Agent<Context> {
       }
     }))
 
-    return dataStreamFilteredResult
+    return {
+      contextId: currentContext.id,
+      triggerEventId,
+      reactionEventId: eventId,
+      stream: dataStreamFilteredResult,
+    }
   }
 
   private async saveMessagesToThread(threadId: string, messages: Array<any>) {
