@@ -149,11 +149,48 @@ export abstract class Agent<Context> {
     // get or create context
     const currentContext = await this.agentService.getOrCreateContext<Context>(contextIdentifier)
 
+    const contextSelector: ContextIdentifier = contextIdentifier?.id
+      ? { id: contextIdentifier.id }
+      : contextIdentifier?.key
+        ? { key: contextIdentifier.key }
+        : { id: currentContext.id }
+
     // save incoming event
-    const triggerEvent = await this.agentService.saveEvent({ id: currentContext.id }, incomingEvent)
+    const triggerEvent = await this.agentService.saveEvent(contextSelector, incomingEvent)
 
     const triggerEventId = triggerEvent.id // trigger event id
     const eventId = id() // reaction event id
+
+    // create execution and set context status
+    const execution = await this.agentService.createExecution(contextSelector, triggerEventId, eventId)
+    const executionId = execution.id
+
+    let latestReactionEvent: ContextEvent | null = null
+    let executionStatus: "executing" | "completed" | "failed" = "executing"
+
+    const markFailure = async () => {
+      if (latestReactionEvent && latestReactionEvent.status !== "failed") {
+        try {
+          latestReactionEvent = await this.agentService.updateEvent(latestReactionEvent.id, {
+            ...latestReactionEvent,
+            status: "failed",
+          })
+        }
+        catch (eventError) {
+          console.error("Failed to mark reaction event as failed", eventError)
+        }
+      }
+
+      if (executionStatus === "executing") {
+        try {
+          await this.agentService.completeExecution(contextSelector, executionId, "failed")
+          executionStatus = "failed"
+        }
+        catch (executionError) {
+          console.error("Failed to mark execution as failed", executionError)
+        }
+      }
+    }
 
     const dataStreamResult = createDataStream({
       execute: async ({ writer: dataStream }: { writer: DataStreamWriter }) => {
@@ -161,12 +198,12 @@ export abstract class Agent<Context> {
         const MAX_LOOPS = 20
 
         // load previous events
-        const previousEvents = await this.agentService.getEvents({ id: currentContext.id })
+        const previousEvents = await this.agentService.getEvents(contextSelector)
 
         const events: ContextEvent[] = previousEvents
         const contextId = currentContext.id
 
-        let reactionEvent = await this.agentService.saveEvent({ id: currentContext.id }, {
+        let reactionEvent = await this.agentService.saveEvent(contextSelector, {
           id: eventId,
           type: "assistant",
           channel: "agent",
@@ -174,6 +211,7 @@ export abstract class Agent<Context> {
           content: { parts: [] },
           status: "pending",
         })
+        latestReactionEvent = reactionEvent
 
         dataStream.write({ type: "event-start", data: { eventId: eventId } } as any)
         while (loopSafety < MAX_LOOPS) {
@@ -183,7 +221,7 @@ export abstract class Agent<Context> {
           loopSafety++
 
           // Read context
-          const currentContext = await this.agentService.getContext<Context>({ id: contextId })
+          const currentContext = await this.agentService.getContext<Context>(contextSelector)
           dataStream.write({ type: "data-context-id", data: { contextId: currentContext.id } } as any)
 
           // Initialize on each loop and get new context data
@@ -340,6 +378,7 @@ export abstract class Agent<Context> {
           }
 
           let currentEventState = await this.agentService.updateEvent(reactionEvent.id, reactionEventWithParts)
+          latestReactionEvent = currentEventState
 
           const executionResults = await Promise.all(toolCalls.map(async (tc: any) => {
             console.log("agent.toolCall.selected", {
@@ -476,16 +515,34 @@ export abstract class Agent<Context> {
             break
           }
         }
-        await this.agentService.updateEvent(reactionEvent.id, {
+        reactionEvent = await this.agentService.updateEvent(reactionEvent.id, {
           ...reactionEvent,
           status: "completed",
         })
+        latestReactionEvent = reactionEvent
+        try {
+          await this.agentService.completeExecution(contextSelector, executionId, "completed")
+          executionStatus = "completed"
+        }
+        catch (error) {
+          console.error("Failed to mark execution as completed", error)
+        }
       },
-      onError: (e) => {
-        console.error("Agent error:", e)
-        throw e
+      onError: (error) => {
+        console.error("Agent error:", error)
+        void markFailure()
+        return error instanceof Error ? error.message : String(error)
       },
-      onFinish: () => {
+      onFinish: async () => {
+        if (executionStatus === "executing") {
+          try {
+            await this.agentService.completeExecution(contextSelector, executionId, "completed")
+            executionStatus = "completed"
+          }
+          catch (executionError) {
+            console.error("Failed to finalize execution on finish", executionError)
+          }
+        }
         console.log("Agent finished")
       }
     })
@@ -513,6 +570,7 @@ export abstract class Agent<Context> {
       triggerEventId,
       reactionEventId: eventId,
       stream: dataStreamFilteredResult,
+      executionId,
     }
   }
 

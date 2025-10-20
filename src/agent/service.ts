@@ -32,20 +32,20 @@ export class AgentService {
 
         let context = await this.getContext<C>(contextIdentifier)
         if (!context) {
-            return this.createContext<C>(contextIdentifier.key ? { key: contextIdentifier.key } : null)
+            return this.createContext<C>(contextIdentifier.key ? { key: contextIdentifier.key } : null, contextIdentifier.id)
         } else {
             return context
         }
     }
 
-    public async createContext<C>(contextKey?: { key: string } | null): Promise<StoredContext<C>> {
+    public async createContext<C>(contextKey?: { key: string } | null, contextId?: string): Promise<StoredContext<C>> {
         let contextData: { createdAt: Date; content: Record<string, unknown>; key: string | null } = {
             createdAt: new Date(),
             content: {},
             key: null
         }
 
-        const contextId = id()
+        const newContextId = contextId ?? id()
         if (contextKey?.key) {
             contextData = {
                 ...contextData,
@@ -54,9 +54,9 @@ export class AgentService {
         }
 
         await this.db.transact([
-            this.db.tx.agent_contexts[contextId].create(contextData)
+            this.db.tx.agent_contexts[newContextId].create(contextData)
         ])
-        return this.getContext<C>({ id: contextId })
+        return this.getContext<C>({ id: newContextId })
     }
 
     public async getContext<C>(contextIdentifier: ContextIdentifier): Promise<StoredContext<C>> {
@@ -118,6 +118,48 @@ export class AgentService {
         await this.db.transact(txs)
 
         return await this.getEvent(event.id)
+    }
+
+    public async createExecution(contextIdentifier: ContextIdentifier, triggerEventId: string, reactionEventId: string): Promise<{ id: string }> {
+        const executionId = id()
+        const execCreate = this.db.tx.agent_executions[executionId].create({
+            createdAt: new Date(),
+            status: "executing",
+        })
+
+        const txs: any[] = [execCreate]
+
+        if (contextIdentifier.id) {
+            txs.push(this.db.tx.agent_executions[executionId].link({ context: contextIdentifier.id }))
+            txs.push(this.db.tx.agent_contexts[contextIdentifier.id].update({ status: "executing" }))
+            txs.push(this.db.tx.agent_contexts[contextIdentifier.id].link({ currentExecution: executionId }))
+        } else {
+            const ctxLookup = lookup("key", contextIdentifier.key)
+            txs.push(this.db.tx.agent_executions[executionId].link({ context: ctxLookup }))
+            txs.push(this.db.tx.agent_contexts[ctxLookup].update({ status: "executing" }))
+            txs.push(this.db.tx.agent_contexts[ctxLookup].link({ currentExecution: executionId }))
+        }
+
+        txs.push(this.db.tx.agent_executions[executionId].link({ trigger: triggerEventId }))
+        txs.push(this.db.tx.agent_executions[executionId].link({ reaction: reactionEventId }))
+
+        await this.db.transact(txs)
+
+        return { id: executionId }
+    }
+
+    public async completeExecution(contextIdentifier: ContextIdentifier, executionId: string, status: "completed" | "failed"): Promise<void> {
+        const txs: any[] = []
+        txs.push(this.db.tx.agent_executions[executionId].update({ status, updatedAt: new Date() }))
+
+        if (contextIdentifier.id) {
+            txs.push(this.db.tx.agent_contexts[contextIdentifier.id].update({ status: "open" }))
+            // optionally unlink currentExecution if desired
+        } else {
+            txs.push(this.db.tx.agent_contexts[lookup("key", contextIdentifier.key)].update({ status: "open" }))
+        }
+
+        await this.db.transact(txs)
     }
 
     public async updateEvent(eventId: string, event: ContextEvent): Promise<ContextEvent> {

@@ -289,7 +289,8 @@ export class TransformDatasetAgent {
             createdAt: new Date().toISOString(),
         }
 
-        const stream = await internalAgent.reactStream(userEvent, null)
+        const reaction = await internalAgent.reactStream(userEvent, null)
+        const stream = reaction.stream
         const streamResult = await this.agentService.readEventStream(stream)
 
         if (streamResult.persistedEvent?.status !== "completed") {
@@ -347,7 +348,8 @@ export class TransformDatasetAgent {
 
         const contextId = contextResult.data.id
 
-        const stream = await internalAgent.reactStream(userEvent, contextId)
+        const reaction = await internalAgent.reactStream(userEvent, { id: contextId })
+        const stream = reaction.stream
         const streamResult = await this.agentService.readEventStream(stream)
 
         if (streamResult.persistedEvent?.status !== "completed") {
