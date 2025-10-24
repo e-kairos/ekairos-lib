@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const story_1 = require("@ekairos/story");
+const ekairos_1 = require("ekairos");
 // Definir una story de ejemplo
 const exampleStory = {
     key: 'workbench:example-story',
@@ -61,7 +61,7 @@ const exampleStory = {
 };
 // Registrar la story en el engine global
 console.log('Registering story...');
-const storyEngineInstance = story_1.engine.register(exampleStory);
+const storyEngineInstance = ekairos_1.engine.register(exampleStory);
 // Obtener el descriptor serializable
 const descriptor = storyEngineInstance.story('workbench:example-story');
 console.log('Story descriptor:', JSON.stringify(descriptor, null, 2));

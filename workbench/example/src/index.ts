@@ -1,4 +1,4 @@
-import { story, engine, storyRunner, Steps, type StoryActionSpec } from '@ekairos/story';
+import { story, engine, storyRunner, Steps, type StoryActionSpec } from 'ekairos';
 
 // Definir una story de ejemplo
 const exampleStory: {

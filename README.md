@@ -4,46 +4,47 @@ Monorepo de librerías para el sistema de agentes y stories de Pulzar/Ekairos.
 
 ## 📦 Paquetes
 
-### `@ekairos/story`
-**El paquete principal** que contiene:
-- 🤖 **Agent/Story**: Sistema de agentes durables con IA (`Agent` class, anteriormente `Story`)
+### `ekairos` (Paquete Principal)
+**El paquete core** que incluye:
+- 🤖 **Agent/Story**: Sistema de agentes durables con IA
 - 🎭 **Story Engine**: Sistema de historias modulares con workflows
 - 🔧 **Steps**: Primitivas para construcción de workflows durables
 - 📊 **Schema & Service**: Dominio de InstantDB para contexts, events y executions
 - 📝 **Document Parser**: Procesamiento de documentos con LlamaCloud
+- 🏗️ **Domain Utilities**: Utilidades para definir esquemas de InstantDB
+
+**Instalación:**
+```bash
+pnpm add ekairos
+```
 
 **Uso:**
 ```typescript
-import { story, engine, storyRunner } from '@ekairos/story';
-import { Agent } from '@ekairos/story'; // Clase legacy
+import { story, engine, storyRunner, domain } from 'ekairos';
+import { Agent } from 'ekairos'; // Clase legacy
 ```
 
-### `@ekairos/domain`
-Utilidades de dominio para definir esquemas de InstantDB de manera modular y componible.
-
-**Uso:**
-```typescript
-import { domain } from '@ekairos/domain';
-
-const myDomain = domain({
-  entities: { /* ... */ },
-  links: { /* ... */ },
-  rooms: { /* ... */ }
-});
-```
-
-### `@ekairos/dataset`
-Herramientas para procesamiento de datasets con IA:
+### `@ekairos/dataset` (Paquete Separado)
+Herramientas especializadas para procesamiento de datasets con IA:
 - 📊 Generación de schemas
 - 🔄 Transformación de datasets
 - 🐍 Scripts Python para preview de datos
 - 🤖 Agentes especializados (FileDatasetAgent, TransformDatasetAgent)
+
+**Instalación:**
+```bash
+pnpm add @ekairos/dataset
+```
 
 **Uso:**
 ```typescript
 import { DatasetService } from '@ekairos/dataset';
 import { FileDatasetAgent } from '@ekairos/dataset';
 ```
+
+### Paquetes Internos (Uso Avanzado)
+- **`@ekairos/story`** - Usado internamente por `ekairos`
+- **`@ekairos/domain`** - Usado internamente por `ekairos`
 
 ## 🚀 Desarrollo
 

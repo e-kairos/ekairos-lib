@@ -107,6 +107,25 @@ importers:
         specifier: ^5.9.2
         version: 5.9.2
 
+  packages/ekairos:
+    dependencies:
+      '@ekairos/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@ekairos/story':
+        specifier: workspace:*
+        version: link:../story
+    devDependencies:
+      '@ekairos/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: ^24.5.0
+        version: 24.5.0
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+
   packages/story:
     dependencies:
       '@ai-sdk/openai':
@@ -158,14 +177,11 @@ importers:
   workbench/example:
     dependencies:
       '@ekairos/dataset':
-        specifier: workspace:*
+        specifier: link:../../packages/dataset
         version: link:../../packages/dataset
-      '@ekairos/domain':
-        specifier: workspace:*
-        version: link:../../packages/domain
-      '@ekairos/story':
-        specifier: workspace:*
-        version: link:../../packages/story
+      ekairos:
+        specifier: link:../../packages/ekairos
+        version: link:../../packages/ekairos
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

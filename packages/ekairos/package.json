@@ -1,0 +1,53 @@
+{
+  "name": "ekairos",
+  "version": "1.6.0",
+  "description": "Ekairos - AI Stories and Workflows Runtime",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pulz-ar/pulzar-lib-core.git",
+    "directory": "packages/ekairos"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./story": {
+      "types": "./dist/story.d.ts",
+      "require": "./dist/story.js",
+      "default": "./dist/story.js"
+    },
+    "./domain": {
+      "types": "./dist/domain.d.ts",
+      "require": "./dist/domain.js",
+      "default": "./dist/domain.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive:true, force:true})\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ekairos/story": "workspace:*",
+    "@ekairos/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@ekairos/tsconfig": "workspace:*",
+    "@types/node": "^24.5.0",
+    "typescript": "^5.9.2"
+  }
+}
+

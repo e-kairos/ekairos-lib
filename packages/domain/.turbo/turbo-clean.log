@@ -1,0 +1,4 @@
+
+> @ekairos/domain@1.6.0 clean C:\Users\aleja\storias\projects\pulzar\pulzar-lib-core\packages\domain
+> node -e "require('fs').rmSync('dist', {recursive:true, force:true})"
+

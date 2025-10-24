@@ -2,3 +2,10 @@
 > @ekairos/example-workbench@0.0.1 build C:\Users\aleja\storias\projects\pulzar\pulzar-lib-core\workbench\example
 > tsc
 
+src/index.ts(1,73): error TS2307: Cannot find module 'ekairos' or its corresponding type declarations.
+src/test-dataset.ts(1,32): error TS2307: Cannot find module '@ekairos/dataset' or its corresponding type declarations.
+src/test-dataset.ts(2,29): error TS2307: Cannot find module 'ekairos' or its corresponding type declarations.
+src/test.ts(1,73): error TS2307: Cannot find module 'ekairos' or its corresponding type declarations.
+src/test.ts(96,12): error TS7006: Parameter 'result' implicitly has an 'any' type.
+src/test.ts(107,13): error TS7006: Parameter 'error' implicitly has an 'any' type.
+ ELIFECYCLE  Command failed with exit code 2.

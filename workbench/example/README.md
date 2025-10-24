@@ -1,6 +1,6 @@
 # Pulzar Workbench Example
 
-Este workbench demuestra el uso de `@ekairos/story` con el motor de historias.
+Este workbench demuestra el uso de `ekairos` con el motor de historias.
 
 ## Estructura
 
@@ -36,7 +36,7 @@ pnpm dev
 
 ```typescript
 // stories.ts - Registro central de historias
-import { story, engine } from '@ekairos/story';
+import { story, engine } from 'ekairos';
 
 const myStory = {
   key: 'platform:my-story',
@@ -58,7 +58,7 @@ export const storyEngine = engine.register(myStory);
 export const descriptor = storyEngine.story('platform:my-story');
 
 // app/workflows/my-story.ts - Workflow exportado
-import { storyRunner } from '@ekairos/story';
+import { storyRunner } from 'ekairos';
 import { descriptor } from '@/stories';
 
 export async function myStoryWorkflow(args?: { context?: any }) {
@@ -79,6 +79,7 @@ export async function POST() {
 ## Próximos pasos
 
 - Agregar más ejemplos de historias complejas
-- Demostrar integración con @ekairos/dataset
+- Demostrar integración con `@ekairos/dataset`
 - Ejemplos de testing de historias
+- Demostrar uso del paquete `ekairos` (wrapper principal)
 

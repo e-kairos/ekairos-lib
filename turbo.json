@@ -19,5 +19,8 @@
     "clean": {
       "cache": false
     }
-  }
+  },
+  "globalPassThroughEnv": [
+    "NODE_ENV"
+  ]
 }

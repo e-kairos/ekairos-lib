@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "test": "tsx src/test.ts",
+    "test:dataset": "tsx src/test-dataset.ts",
+    "test:all": "tsx src/test.ts && tsx src/test-dataset.ts",
     "build": "tsc"
   },
   "dependencies": {
-    "@ekairos/story": "workspace:*",
-    "@ekairos/domain": "workspace:*",
-    "@ekairos/dataset": "workspace:*"
+    "ekairos": "link:../../packages/ekairos",
+    "@ekairos/dataset": "link:../../packages/dataset"
   },
   "devDependencies": {
     "@types/node": "catalog:",

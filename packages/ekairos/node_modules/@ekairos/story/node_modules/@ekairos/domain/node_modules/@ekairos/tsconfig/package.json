@@ -1,0 +1,9 @@
+{
+  "name": "@ekairos/tsconfig",
+  "version": "1.6.0",
+  "private": true,
+  "files": [
+    "base.json"
+  ]
+}
+
