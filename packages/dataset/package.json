@@ -1,0 +1,57 @@
+{
+  "name": "@ekairos/dataset",
+  "version": "1.6.0",
+  "description": "Pulzar Dataset Tools",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "file/scripts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pulz-ar/pulzar-lib-core.git",
+    "directory": "packages/dataset"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./file/scripts": {
+      "default": "./dist/file/scripts"
+    },
+    "./file/scripts/*": {
+      "default": "./dist/file/scripts/*"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-python-scripts.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ekairos/story": "workspace:*",
+    "@ekairos/domain": "workspace:*",
+    "@instantdb/admin": "^0.22.13",
+    "@instantdb/core": "^0.22.13",
+    "@vercel/sandbox": "^0.0.23",
+    "ai": "^5.0.44",
+    "ajv": "^8.17.1",
+    "xmlbuilder2": "^3.1.1",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@ekairos/tsconfig": "workspace:*",
+    "@types/node": "^24.5.0",
+    "typescript": "^5.9.2"
+  }
+}
+

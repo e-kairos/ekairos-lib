@@ -38,7 +38,7 @@ export interface AgentOptions {
   onEnd?: (lastEvent: ContextEvent) => void | { end?: boolean } | Promise<void | { end?: boolean }>
 }
 
-export interface ReactStreamOptions {
+export interface ProgressStreamOptions {
   reasoningEffort?: "low" | "medium" | "high"
   webSearch?: boolean
 }
@@ -47,7 +47,7 @@ export type DataStreamWriter = UIMessageStreamWriter<AgentMessage>
 const createDataStream = createUIMessageStream;
 
 
-export abstract class Agent<Context> {
+export abstract class Story<Context> {
   protected db = init({ 
     appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string, 
     adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string
@@ -140,10 +140,10 @@ export abstract class Agent<Context> {
     return { success: true, message: "Direction requested", data: { messageId: systemMessage.id, threadId } }
   }
 
-  public async reactStream(
+  public async progressStream(
     incomingEvent: ContextEvent,
     contextIdentifier: ContextIdentifier | null,
-    options?: ReactStreamOptions
+    options?: ProgressStreamOptions
   ) {
 
     // get or create context
@@ -424,7 +424,7 @@ export abstract class Agent<Context> {
 
           let exitOuterLoop = false
           const customFinalizationTools = await this.getFinalizationToolNames()
-          const allFinalToolNames = [...Agent.FINAL_TOOL_NAMES, ...customFinalizationTools]
+          const allFinalToolNames = [...Story.FINAL_TOOL_NAMES, ...customFinalizationTools]
 
           for (const { tc, execSuccess, execMessage, execResult } of executionResults) {
             try {

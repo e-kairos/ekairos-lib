@@ -1,0 +1,12 @@
+
+> @ekairos/dataset@1.6.0 build C:\Users\aleja\storias\projects\pulzar\pulzar-lib-core\packages\dataset
+> tsc -p tsconfig.json && node scripts/copy-python-scripts.js
+
+Copied: file_metadata.py
+Copied: preview_head_csv.py
+Copied: preview_head_excel.py
+Copied: preview_mid_csv.py
+Copied: preview_mid_excel.py
+Copied: preview_tail_csv.py
+Copied: preview_tail_excel.py
+✓ Copied 7 Python script(s) to dist/

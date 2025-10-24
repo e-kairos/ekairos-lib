@@ -1,0 +1,14 @@
+packages:
+  - packages/*
+  - workbench/*
+
+catalog:
+  '@types/node': ^24.5.0
+  typescript: ^5.9.2
+  '@ai-sdk/openai': ^2.0.52
+  '@instantdb/admin': ^0.22.13
+  '@instantdb/core': ^0.22.13
+  '@vercel/sandbox': ^0.0.23
+  ai: ^5.0.44
+  zod: ^4.1.8
+

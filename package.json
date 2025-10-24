@@ -1,7 +1,8 @@
 {
-  "name": "@pulz-ar/core",
-  "version": "1.5.2",
-  "description": "Pulzar Core",
+  "name": "pulzar-workspace",
+  "version": "1.6.0",
+  "private": true,
+  "description": "Pulzar Lib Core - Monorepo",
   "homepage": "https://github.com/pulz-ar/pulzar-lib-core#readme",
   "bugs": {
     "url": "https://github.com/pulz-ar/pulzar-lib-core/issues"
@@ -12,87 +13,29 @@
   },
   "license": "MIT",
   "author": "",
-  "type": "commonjs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "agent",
-    "domain",
-    "dataset"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
-    "build": "tsc -p tsconfig.json && npm run copy-scripts",
-    "copy-scripts": "node scripts/copy-python-scripts.js",
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "clean": "turbo clean",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
     "release": "semantic-release",
-    "prepublishOnly": "pnpm run build",
-    "test": "echo \"No tests specified\" && exit 0",
     "ship:major": "npm version major && pnpm run build && pnpm run release",
     "ship:minor": "npm version minor && pnpm run build && pnpm run release",
     "ship:patch": "npm version patch && pnpm run build && pnpm run release"
-  },
-  "dependencies": {
-    "@ai-sdk/openai": "^2.0.52",
-    "@instantdb/admin": "^0.22.13",
-    "@instantdb/core": "^0.22.13",
-    "@vercel/sandbox": "^0.0.23",
-    "ai": "^5.0.44",
-    "ajv": "^8.17.1",
-    "braintrust": "^0.3.7",
-    "llamaindex": "^0.12.0",
-    "xmlbuilder2": "^3.1.1",
-    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@semantic-release/commit-analyzer": "^10.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^10.0.3",
     "@semantic-release/release-notes-generator": "^11.0.3",
-    "@types/node": "^24.5.0",
+    "@types/node": "catalog:",
     "dotenv": "^17.2.3",
     "semantic-release": "^23.0.2",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
-    },
-    "./agent": {
-      "types": "./agent/index.d.ts",
-      "require": "./agent/index.js",
-      "default": "./agent/index.js"
-    },
-    "./domain": {
-      "types": "./domain/index.d.ts",
-      "require": "./domain/index.js",
-      "default": "./domain/index.js"
-    },
-    "./agent/domain": {
-      "types": "./dist/agent/domain.d.ts",
-      "require": "./dist/agent/domain.js",
-      "default": "./dist/agent/domain.js"
-    },
-    "./dataset": {
-      "types": "./dataset/index.d.ts",
-      "require": "./dataset/index.js",
-      "default": "./dataset/index.js"
-    },
-    "./dataset/domain": {
-      "types": "./dist/dataset/domain.d.ts",
-      "require": "./dist/dataset/domain.js",
-      "default": "./dist/dataset/domain.js"
-    },
-    "./dataset/file/scripts": {
-      "default": "./dist/dataset/file/scripts"
-    },
-    "./dataset/file/scripts/*": {
-      "default": "./dist/dataset/file/scripts/*"
-    }
+    "turbo": "^2.5.4",
+    "typescript": "catalog:",
+    "vitest": "^3.2.4",
+    "tsx": "^4.19.2"
   }
 }
