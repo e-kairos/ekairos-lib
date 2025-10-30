@@ -1,12 +1,13 @@
 import { init, id as newId, InstantAdminDatabase } from "@instantdb/admin"
-import { SchemaOf } from "@ekairos/domain";
+// import { SchemaOf } from "@ekairos/domain";
 import { datasetDomain } from "./schema";
-import { storyDomain } from "@ekairos/story";
+// import { storyDomain } from "@ekairos/story";
 
 
 export type ServiceResult<T = any> = { ok: true; data: T } | { ok: false; error: string }
 
-type DatasetSchemaType = SchemaOf<typeof datasetDomain> & SchemaOf<typeof storyDomain>;
+// type DatasetSchemaType = SchemaOf<typeof datasetDomain> & SchemaOf<typeof storyDomain>;
+type DatasetSchemaType = any;
 
 export class DatasetService {
     private readonly db: InstantAdminDatabase<DatasetSchemaType>;
@@ -426,7 +427,7 @@ export class DatasetService {
                         limit: 1,
                     },
                     dataFile: {},
-                } as any, // FIX TYPE ERROR
+                } as any
             })
 
             const datasetRecord = fileQuery.dataset_datasets?.[0]

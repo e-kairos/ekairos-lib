@@ -605,6 +605,4 @@ export abstract class Story<Context> {
 
 }
 
-// Alias para retrocompatibilidad
-export { Story as Agent }
 

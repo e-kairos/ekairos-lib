@@ -1,0 +1,38 @@
+{
+  "name": "@ekairos/nextjs-workbench",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "pnpm run test:standalone",
+    "test:standalone": "tsx test-workflow.ts",
+    "test:integration": "tsx test-integration.ts",
+    "dev:test": "next dev --port 3030",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "@ekairos/dataset": "link:../../packages/dataset",
+    "@ekairos/story": "link:../../packages/story",
+    "@workflow/next": "link:..\\..\\..\\..\\vercel-workflow\\workflow\\packages\\next",
+    "@workflow/world-local": "^4.0.1-beta.1",
+    "ekairos": "link:../../packages/ekairos",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "workflow": "link:..\\..\\..\\..\\vercel-workflow\\workflow\\packages\\workflow"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.2",
+    "cypress": "^15.5.0",
+    "start-server-and-test": "^2.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "catalog:"
+  }
+}

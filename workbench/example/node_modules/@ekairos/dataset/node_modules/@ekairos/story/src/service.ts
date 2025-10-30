@@ -1,5 +1,16 @@
-import { id, init, InstaQLEntity, lookup } from "@instantdb/admin"
+import type { InstaQLEntity } from "@instantdb/admin"
 import { storyDomain } from "./schema"
+
+type InstantAdminModule = typeof import("@instantdb/admin")
+
+let instantAdminModuleCache: InstantAdminModule | null = null
+
+function loadInstantAdminModule(): InstantAdminModule {
+    if (!instantAdminModuleCache) {
+        instantAdminModuleCache = require("@instantdb/admin") as InstantAdminModule
+    }
+    return instantAdminModuleCache
+}
 
 export type StoredContext<Context> = Omit<InstaQLEntity<typeof storyDomain, 'story_contexts'>, 'content'> & { content: Context }
 export type ContextIdentifier = { id: string; key?: never } | { key: string; id?: never }
@@ -15,14 +26,20 @@ export type StreamChunk = {
 
 export class AgentService {
 
-    private db: ReturnType<typeof init>
+    private instant: InstantAdminModule
+    private db: ReturnType<InstantAdminModule["init"]>
+    private idFn: InstantAdminModule["id"]
+    private lookupFn: InstantAdminModule["lookup"]
 
     constructor() {
-        this.db = init({
+        this.instant = loadInstantAdminModule()
+        this.db = this.instant.init({
             appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID as string,
             adminToken: process.env.INSTANT_APP_ADMIN_TOKEN as string, 
             schema: storyDomain.schema()
         })
+        this.idFn = this.instant.id
+        this.lookupFn = this.instant.lookup
     }
 
     public async getOrCreateContext<C>(contextIdentifier: ContextIdentifier | null): Promise<StoredContext<C>> {
@@ -45,7 +62,7 @@ export class AgentService {
             key: null
         }
 
-        const newContextId = contextId ?? id()
+        const newContextId = contextId ?? this.idFn()
         if (contextKey?.key) {
             contextData = {
                 ...contextData,
@@ -89,7 +106,7 @@ export class AgentService {
 
     public async updateContextContent<C>(contextIdentifier: ContextIdentifier, content: C): Promise<StoredContext<C>> {
 
-        const contextDBIdentifier = contextIdentifier.id ?? lookup("key", contextIdentifier.key)
+        const contextDBIdentifier = contextIdentifier.id ?? this.lookupFn("key", contextIdentifier.key)
 
         await this.db.transact([
             this.db.tx.story_contexts[contextDBIdentifier].update({
@@ -112,7 +129,7 @@ export class AgentService {
         if (contextIdentifier.id) {
             txs.push(this.db.tx.story_events[event.id].link({ context: contextIdentifier.id }))
         } else {
-            txs.push(this.db.tx.story_events[event.id].link({ context: lookup("key", contextIdentifier.key) }))
+            txs.push(this.db.tx.story_events[event.id].link({ context: this.lookupFn("key", contextIdentifier.key) }))
         }
 
         await this.db.transact(txs)
@@ -121,7 +138,7 @@ export class AgentService {
     }
 
     public async createExecution(contextIdentifier: ContextIdentifier, triggerEventId: string, reactionEventId: string): Promise<{ id: string }> {
-        const executionId = id()
+        const executionId = this.idFn()
         const execCreate = this.db.tx.story_executions[executionId].create({
             createdAt: new Date(),
             status: "executing",
@@ -134,7 +151,7 @@ export class AgentService {
             txs.push(this.db.tx.story_contexts[contextIdentifier.id].update({ status: "executing" }))
             txs.push(this.db.tx.story_contexts[contextIdentifier.id].link({ currentExecution: executionId }))
         } else {
-            const ctxLookup = lookup("key", contextIdentifier.key)
+            const ctxLookup = this.lookupFn("key", contextIdentifier.key)
             txs.push(this.db.tx.story_executions[executionId].link({ context: ctxLookup }))
             txs.push(this.db.tx.story_contexts[ctxLookup].update({ status: "executing" }))
             txs.push(this.db.tx.story_contexts[ctxLookup].link({ currentExecution: executionId }))
@@ -156,7 +173,7 @@ export class AgentService {
             txs.push(this.db.tx.story_contexts[contextIdentifier.id].update({ status: "open" }))
             // optionally unlink currentExecution if desired
         } else {
-            txs.push(this.db.tx.story_contexts[lookup("key", contextIdentifier.key)].update({ status: "open" }))
+            txs.push(this.db.tx.story_contexts[this.lookupFn("key", contextIdentifier.key)].update({ status: "open" }))
         }
 
         await this.db.transact(txs)
@@ -184,7 +201,7 @@ export class AgentService {
         if (contextIdentifier.id) {
             contextWhere = { context: contextIdentifier.id }
         } else {
-            contextWhere = { context: lookup("key", contextIdentifier.key) }
+            contextWhere = { context: this.lookupFn("key", contextIdentifier.key) }
         }
 
         const events = await this.db.query({

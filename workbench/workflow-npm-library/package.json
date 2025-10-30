@@ -1,0 +1,10 @@
+{
+  "name": "@workflow-npm-library",
+  "version": "1.0.0",
+  "description": "Workflow NPM Library Test",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  }
+}

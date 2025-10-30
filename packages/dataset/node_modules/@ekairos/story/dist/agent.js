@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Agent = exports.Story = void 0;
+exports.Story = void 0;
 const admin_1 = require("@instantdb/admin");
 const ai_1 = require("ai");
 const openai_1 = require("@ai-sdk/openai");
@@ -474,6 +474,5 @@ class Story {
     }
 }
 exports.Story = Story;
-exports.Agent = Story;
 Story.FINAL_TOOL_NAMES = ["createMessage", "requestDirection", "end"];
 //# sourceMappingURL=agent.js.map

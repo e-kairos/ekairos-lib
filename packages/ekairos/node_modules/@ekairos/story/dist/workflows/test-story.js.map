@@ -1,0 +1,1 @@
+{"version":3,"file":"test-story.js","sourceRoot":"","sources":["../../src/workflows/test-story.ts"],"names":[],"mappings":";;AAGA,oCAQC;AAVD,uDAA8C;AAEvC,KAAK,UAAU,YAAY,CAAC,OAAe;IAChD,cAAc,CAAA;IACd,MAAM,MAAM,GAAG,MAAM,IAAA,2BAAS,EAAC,OAAO,CAAC,CAAA;IACvC,OAAO;QACL,SAAS,EAAE,SAAS,OAAO,EAAE;QAC7B,MAAM,EAAE,WAAW;QACnB,GAAG,MAAM;KACV,CAAA;AACH,CAAC"}

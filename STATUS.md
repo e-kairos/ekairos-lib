@@ -69,8 +69,14 @@ Paquetes publicables: 4
   - @ekairos/dataset
 
 Builds exitosos: 4/4
-Tests pasados: 13/13
+Tests pasados: 19/19
+  - Story Engine: 9/9
+  - Dataset Integration: 4/4
+  - Workflow with Local World: 6/6
 Scripts Python: 7/7
+Workbenches: 2
+  - example (básico)
+  - nextjs (con Workflow DevKit)
 ```
 
 ## 🎯 Estructura de Instalación

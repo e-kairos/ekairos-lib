@@ -15,4 +15,5 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("@ekairos/story"), exports);
+//export { storyRunner } from '@ekairos/story'
 //# sourceMappingURL=story.js.map

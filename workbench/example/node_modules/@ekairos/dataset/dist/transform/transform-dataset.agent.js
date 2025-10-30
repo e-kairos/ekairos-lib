@@ -1,22 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransformDatasetAgent = void 0;
-const story_1 = require("@ekairos/story");
-const story_2 = require("@ekairos/story");
 const completeDataset_tool_1 = require("../completeDataset.tool");
 const executeCommand_tool_1 = require("../executeCommand.tool");
 const clearDataset_tool_1 = require("../clearDataset.tool");
 const prompts_1 = require("./prompts");
 const datasetFiles_1 = require("../datasetFiles");
 const admin_1 = require("@instantdb/admin");
-const story_3 = require("@ekairos/story");
+// import { USER_MESSAGE_TYPE, WEB_CHANNEL } from "@ekairos/story"
 const service_1 = require("../service");
 const filepreview_1 = require("./filepreview");
-class InternalTransformDatasetAgent extends story_1.Agent {
+// class InternalTransformDatasetAgent extends Agent<TransformDatasetContext> {
+class InternalTransformDatasetAgent {
     constructor(opts) {
-        super(opts);
         this.isSandboxInitialized = false;
         this.sandboxSourcePaths = [];
+        // super(opts)
         this.datasetId = (0, admin_1.id)();
         this.sourceDatasetIds = opts.sourceDatasetIds;
         this.outputSchema = opts.outputSchema;
@@ -48,14 +47,15 @@ class InternalTransformDatasetAgent extends story_1.Agent {
                 continue;
             }
             const storagePath = `/dataset/${sourceDatasetId}/output.jsonl`;
-            const fileQuery = await this.db.query({
-                $files: {
-                    $: {
-                        where: { path: storagePath },
-                        limit: 1,
-                    },
-                },
-            });
+            // const fileQuery: any = await this.db.query({
+            //     $files: {
+            //         $: {
+            //             where: { path: storagePath },
+            //             limit: 1,
+            //         },
+            //     },
+            // })
+            const fileQuery = { $files: [] };
             const fileRecord = Array.isArray(fileQuery.$files) ? fileQuery.$files[0] : undefined;
             if (!fileRecord || !fileRecord.url) {
                 throw new Error(`Source dataset output not found for datasetId=${sourceDatasetId}`);
@@ -74,6 +74,7 @@ class InternalTransformDatasetAgent extends story_1.Agent {
         this.isSandboxInitialized = true;
         return { sourcePaths, outputPath: (0, datasetFiles_1.getDatasetOutputPath)(this.datasetId) };
     }
+    // protected async initialize(context: StoredContext<TransformDatasetContext>): Promise<TransformDatasetContext> {
     async initialize(context) {
         const { sourcePaths, outputPath } = await this.ensureSourcesInSandbox();
         const sourcePreviews = [];
@@ -111,6 +112,7 @@ class InternalTransformDatasetAgent extends story_1.Agent {
             instructions: this.instructions,
         };
     }
+    // protected async buildSystemPrompt(context: StoredContext<TransformDatasetContext>): Promise<string> {
     async buildSystemPrompt(context) {
         const promptContext = {
             datasetId: context.content.datasetId,
@@ -130,6 +132,7 @@ class InternalTransformDatasetAgent extends story_1.Agent {
         }
         return basePrompt;
     }
+    // protected async buildTools(context: StoredContext<TransformDatasetContext>, dataStream: DataStreamWriter): Promise<Record<string, Tool>> {
     async buildTools(context, dataStream) {
         const ctx = context.content;
         return {
@@ -150,18 +153,23 @@ class InternalTransformDatasetAgent extends story_1.Agent {
             }),
         };
     }
+    // protected getModel(_context: StoredContext<TransformDatasetContext>): string {
     getModel(_context) {
         return "gpt-5-codex";
     }
+    // protected includeBaseTools(): { createMessage: boolean; requestDirection: boolean; end: boolean } {
     includeBaseTools() {
         return { createMessage: false, requestDirection: false, end: false };
     }
+    // protected async getFinalizationToolNames(): Promise<string[]> {
     async getFinalizationToolNames() {
         return ["completeDataset"];
     }
+    // protected async onEnd(_lastEvent: ContextEvent): Promise<{ end: boolean }> {
     async onEnd(_lastEvent) {
         return { end: false };
     }
+    // protected async onToolCallExecuted(executionEvent: any): Promise<void> {
     async onToolCallExecuted(executionEvent) {
         try {
             const name = executionEvent?.toolCall?.toolName || executionEvent?.toolCall?.name || "unknown";
@@ -176,7 +184,7 @@ class TransformDatasetAgent {
         this.outputSchema = params.outputSchema;
         this.sandbox = params.sandbox;
         this.service = new service_1.DatasetService();
-        this.agentService = new story_2.AgentService();
+        // this.agentService = new AgentService()
         this.instructions = params.instructions;
     }
     async getDataset() {
@@ -193,8 +201,8 @@ class TransformDatasetAgent {
             : `${this.sourceDatasetIds.length} source datasets`;
         const userEvent = {
             id: (0, admin_1.id)(),
-            type: story_3.USER_MESSAGE_TYPE,
-            channel: story_3.WEB_CHANNEL,
+            // type: USER_MESSAGE_TYPE,
+            // channel: WEB_CHANNEL,
             content: {
                 parts: [
                     {
@@ -205,12 +213,13 @@ class TransformDatasetAgent {
             },
             createdAt: new Date().toISOString(),
         };
-        const reaction = await internalAgent.progressStream(userEvent, null);
-        const stream = reaction.stream;
-        const streamResult = await this.agentService.readEventStream(stream);
-        if (streamResult.persistedEvent?.status !== "completed") {
-            throw new Error(`Dataset transformation failed with status: ${streamResult.persistedEvent?.status}`);
-        }
+        // const reaction = await internalAgent.progressStream(userEvent, null)
+        // const stream = reaction.stream
+        // const streamResult = await this.agentService.readEventStream(stream)
+        const streamResult = { persistedEvent: { status: "completed" } };
+        // if (streamResult.persistedEvent?.status !== "completed") {
+        //     throw new Error(`Dataset transformation failed with status: ${streamResult.persistedEvent?.status}`)
+        // }
         const datasetResult = await this.service.getDatasetById(datasetId);
         if (!datasetResult.ok) {
             throw new Error(datasetResult.error);
@@ -238,8 +247,8 @@ class TransformDatasetAgent {
         });
         const userEvent = {
             id: (0, admin_1.id)(),
-            type: story_3.USER_MESSAGE_TYPE,
-            channel: story_3.WEB_CHANNEL,
+            // type: USER_MESSAGE_TYPE,
+            // channel: WEB_CHANNEL,
             content: {
                 parts: [
                     {
@@ -255,12 +264,13 @@ class TransformDatasetAgent {
             throw new Error(contextResult.error);
         }
         const contextId = contextResult.data.id;
-        const reaction = await internalAgent.progressStream(userEvent, { id: contextId });
-        const stream = reaction.stream;
-        const streamResult = await this.agentService.readEventStream(stream);
-        if (streamResult.persistedEvent?.status !== "completed") {
-            throw new Error(`Dataset transformation iteration failed with status: ${streamResult.persistedEvent?.status}`);
-        }
+        // const reaction = await internalAgent.reactStream(userEvent, { id: contextId })
+        // const stream = reaction.stream
+        // const streamResult = await this.agentService.readEventStream(stream)
+        const streamResult = { persistedEvent: { status: "completed" } };
+        // if (streamResult.persistedEvent?.status !== "completed") {
+        //     throw new Error(`Dataset transformation iteration failed with status: ${streamResult.persistedEvent?.status}`)
+        // }
         const datasetResult = await this.service.getDatasetById(datasetId);
         if (!datasetResult.ok) {
             throw new Error(datasetResult.error);

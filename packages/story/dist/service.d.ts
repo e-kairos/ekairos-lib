@@ -1,4 +1,4 @@
-import { InstaQLEntity } from "@instantdb/admin";
+import type { InstaQLEntity } from "@instantdb/admin";
 import { storyDomain } from "./schema";
 export type StoredContext<Context> = Omit<InstaQLEntity<typeof storyDomain, 'story_contexts'>, 'content'> & {
     content: Context;
@@ -20,7 +20,10 @@ export type StreamChunk = {
     [key: string]: unknown;
 };
 export declare class AgentService {
+    private instant;
     private db;
+    private idFn;
+    private lookupFn;
     constructor();
     getOrCreateContext<C>(contextIdentifier: ContextIdentifier | null): Promise<StoredContext<C>>;
     createContext<C>(contextKey?: {

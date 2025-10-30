@@ -1,12 +1,69 @@
-
+[?9001h[?1004h[?25l[2J[m[HDebugger attached.
+]0;C:\WINDOWS\system32\cmd.exe[?25h[?25l
 > @ekairos/dataset@1.6.0 build C:\Users\aleja\storias\projects\pulzar\pulzar-lib-core\packages\dataset
-> tsc -p tsconfig.json && node scripts/copy-python-scripts.js
+> tsc -p tsconfig.json && node scripts/copy-python-scripts.js[7;1H[?25hDebugger attached.
+[?25l[96msrc/file/file-dataset.agent.ts[m:[93m1[m:[93m10 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported member 'Agent'.[7m[11;1H1[27m import { Agent, AgentOptions, DataStreamWriter } from "@ekairos/story"[7m
+ [27m[10X[91m[10C~~~~~[14;1H[?25h[?25l[m[96msrc/file/file-dataset.agent.ts[m:[93m1[m:[93m17 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported member 'AgentOptions'.[7m[17;1H1[27m import { Agent, AgentOptions, DataStreamWriter } from "@ekairos/story"[?25h
+[7m [27m[17X[91m[17C~~~~~~~~~~~~[K[m
 
-Copied: file_metadata.py
-Copied: preview_head_csv.py
-Copied: preview_head_excel.py
-Copied: preview_mid_csv.py
-Copied: preview_mid_excel.py
-Copied: preview_tail_csv.py
-Copied: preview_tail_excel.py
-✓ Copied 7 Python script(s) to dist/
+[96msrc/file/file-dataset.agent.ts[m:[93m1[m:[93m31 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported mem
+[16;97Hmber 'DataStreamWriter'.
+
+[7m1[27m import { Agent, AgentOptions, DataStreamWriter } from "@ekairos/story"[K
+[7m [27m[31X[91m[31C~~~~~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m3[m:[93m10 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported mem
+[16;97Hmber 'AgentService'.
+
+[7m3[27m import { AgentService, ContextEvent, StoredContext } from "@ekairos/story"[K
+[7m [27m[10X[91m[10C~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m3[m:[93m24 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported mem
+[16;97Hmber 'ContextEvent'.
+
+[7m3[27m import { AgentService, ContextEvent, StoredContext } from "@ekairos/story"[K
+[7m [27m[24X[91m[24C~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m3[m:[93m38 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported mem
+[16;97Hmber 'StoredContext'.
+
+[7m3[27m import { AgentService, ContextEvent, StoredContext } from "@ekairos/story"[K
+[7m [27m[38X[91m[38C~~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m12[m:[93m10 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported me
+[16;97Hember 'USER_MESSAGE_TYPE'.
+
+[7m12[27m import { USER_MESSAGE_TYPE, WEB_CHANNEL } from "@ekairos/story"[K
+[7m  [27m[10X[91m[10C~~~~~~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m12[m:[93m29 [m- [91merror [90mTS2305: [mModule '"@ekairos/story"' has no exported me
+[16;97Hember 'WEB_CHANNEL'.
+
+[7m12[27m import { USER_MESSAGE_TYPE, WEB_CHANNEL } from "@ekairos/story"[K
+[7m  [27m[29X[91m[29C~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m86[m:[93m47 [m- [91merror [90mTS2339: [mProperty 'db' does not exist on type 'Intern
+[16;97HnalFileDatasetAgent'.
+
+[7m86[27m             const fileQuery: any = await this.db.query({[K
+[7m  [27m[47X[91m[47C~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m291[m:[93m46 [m- [91merror [90mTS2339: [mProperty 'progressStream' does not exist on
+[16;97Hn type 'InternalFileDatasetAgent'.
+
+[7m291[27m         const reaction = await internalAgent.progressStream(userEvent, null)[K
+[7m   [27m[46X[91m[46C~~~~~~~~~~~~~~[K[m
+
+[96msrc/file/file-dataset.agent.ts[m:[93m349[m:[93m46 [m- [91merror [90mTS2339: [mProperty 'progressStream' does not exist on
+[16;97Hn type 'InternalFileDatasetAgent'.
+
+[7m349[27m         const reaction = await internalAgent.progressStream(userEvent, { id: contextId })    [17;1H
+[7m   [27m[46X[91m[46C~~~~~~~~~~~~~~[K[m
+
+
+Found 11 errors in the same file, starting at: src/file/file-dataset.agent.ts[90m:1[K[m
+
+Waiting for the debugger to disconnect...
+[30m[41m ELIFECYCLE [m [31mCommand failed with exit code 2.[m
+Waiting for the debugger to disconnect...
+[?9001l[?1004l

@@ -1,0 +1,19 @@
+# Next.js
+.next/
+out/
+
+# Workflow data
+.workflow-data/
+.workflow-data-test/
+
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Env
+.env*.local
+
+
+

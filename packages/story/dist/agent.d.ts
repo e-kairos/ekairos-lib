@@ -69,5 +69,4 @@ export declare abstract class Story<Context> {
     private saveMessagesToThread;
     private callOnEnd;
 }
-export { Story as Agent };
 //# sourceMappingURL=agent.d.ts.map

@@ -1,4 +1,3 @@
-import { AgentOptions } from "@ekairos/story";
 import { Sandbox } from "@vercel/sandbox";
 import { DatasetService } from "../service";
 import { TransformSourcePreviewContext } from "./filepreview";
@@ -27,7 +26,7 @@ export type TransformDatasetAgentOptions = {
     sandbox: Sandbox;
     service: DatasetService;
     instructions?: string;
-} & AgentOptions;
+};
 export type TransformDatasetResult = {
     id: string;
     status?: string;
@@ -44,7 +43,6 @@ export declare class TransformDatasetAgent {
     private outputSchema;
     private sandbox;
     private service;
-    private agentService;
     private instructions?;
     constructor(params: {
         sourceDatasetIds: string | string[];

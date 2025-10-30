@@ -1,6 +1,8 @@
 packages:
   - packages/*
   - workbench/*
+  - workbench/workflow-npm-library
+  - "!packages/dataset"
 
 catalog:
   '@types/node': ^24.5.0
@@ -11,4 +13,5 @@ catalog:
   '@vercel/sandbox': ^0.0.23
   ai: ^5.0.44
   zod: ^4.1.8
+
 

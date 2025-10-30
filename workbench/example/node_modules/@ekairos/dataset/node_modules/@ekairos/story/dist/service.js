@@ -1,15 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentService = void 0;
-const admin_1 = require("@instantdb/admin");
 const schema_1 = require("./schema");
+let instantAdminModuleCache = null;
+function loadInstantAdminModule() {
+    if (!instantAdminModuleCache) {
+        instantAdminModuleCache = require("@instantdb/admin");
+    }
+    return instantAdminModuleCache;
+}
 class AgentService {
     constructor() {
-        this.db = (0, admin_1.init)({
+        this.instant = loadInstantAdminModule();
+        this.db = this.instant.init({
             appId: process.env.NEXT_PUBLIC_INSTANT_APP_ID,
             adminToken: process.env.INSTANT_APP_ADMIN_TOKEN,
             schema: schema_1.storyDomain.schema()
         });
+        this.idFn = this.instant.id;
+        this.lookupFn = this.instant.lookup;
     }
     async getOrCreateContext(contextIdentifier) {
         if (!contextIdentifier) {
@@ -29,7 +38,7 @@ class AgentService {
             content: {},
             key: null
         };
-        const newContextId = contextId ?? (0, admin_1.id)();
+        const newContextId = contextId ?? this.idFn();
         if (contextKey?.key) {
             contextData = {
                 ...contextData,
@@ -68,7 +77,7 @@ class AgentService {
         }
     }
     async updateContextContent(contextIdentifier, content) {
-        const contextDBIdentifier = contextIdentifier.id ?? (0, admin_1.lookup)("key", contextIdentifier.key);
+        const contextDBIdentifier = contextIdentifier.id ?? this.lookupFn("key", contextIdentifier.key);
         await this.db.transact([
             this.db.tx.story_contexts[contextDBIdentifier].update({
                 content: content,
@@ -88,13 +97,13 @@ class AgentService {
             txs.push(this.db.tx.story_events[event.id].link({ context: contextIdentifier.id }));
         }
         else {
-            txs.push(this.db.tx.story_events[event.id].link({ context: (0, admin_1.lookup)("key", contextIdentifier.key) }));
+            txs.push(this.db.tx.story_events[event.id].link({ context: this.lookupFn("key", contextIdentifier.key) }));
         }
         await this.db.transact(txs);
         return await this.getEvent(event.id);
     }
     async createExecution(contextIdentifier, triggerEventId, reactionEventId) {
-        const executionId = (0, admin_1.id)();
+        const executionId = this.idFn();
         const execCreate = this.db.tx.story_executions[executionId].create({
             createdAt: new Date(),
             status: "executing",
@@ -106,7 +115,7 @@ class AgentService {
             txs.push(this.db.tx.story_contexts[contextIdentifier.id].link({ currentExecution: executionId }));
         }
         else {
-            const ctxLookup = (0, admin_1.lookup)("key", contextIdentifier.key);
+            const ctxLookup = this.lookupFn("key", contextIdentifier.key);
             txs.push(this.db.tx.story_executions[executionId].link({ context: ctxLookup }));
             txs.push(this.db.tx.story_contexts[ctxLookup].update({ status: "executing" }));
             txs.push(this.db.tx.story_contexts[ctxLookup].link({ currentExecution: executionId }));
@@ -124,7 +133,7 @@ class AgentService {
             // optionally unlink currentExecution if desired
         }
         else {
-            txs.push(this.db.tx.story_contexts[(0, admin_1.lookup)("key", contextIdentifier.key)].update({ status: "open" }));
+            txs.push(this.db.tx.story_contexts[this.lookupFn("key", contextIdentifier.key)].update({ status: "open" }));
         }
         await this.db.transact(txs);
     }
@@ -148,7 +157,7 @@ class AgentService {
             contextWhere = { context: contextIdentifier.id };
         }
         else {
-            contextWhere = { context: (0, admin_1.lookup)("key", contextIdentifier.key) };
+            contextWhere = { context: this.lookupFn("key", contextIdentifier.key) };
         }
         const events = await this.db.query({
             story_events: {

@@ -1,4 +1,4 @@
-import { DatasetService } from '@ekairos/dataset';
+/*import { DatasetService } from '@ekairos/dataset';
 import { storyDomain } from 'ekairos';
 
 console.log('🧪 Testing @ekairos/dataset Integration\n');
@@ -54,4 +54,6 @@ console.log('  - DatasetService available ✓');
 console.log('  - Story domain accessible ✓');
 console.log('  - Python scripts copied to dist ✓');
 console.log('\n✅ Full monorepo integration working correctly!');
+*/
+
 

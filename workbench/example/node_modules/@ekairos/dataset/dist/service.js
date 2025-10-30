@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DatasetService = void 0;
 const admin_1 = require("@instantdb/admin");
+// import { SchemaOf } from "@ekairos/domain";
 const schema_1 = require("./schema");
 class DatasetService {
     constructor() {
@@ -328,7 +329,7 @@ class DatasetService {
                         limit: 1,
                     },
                     dataFile: {},
-                }, // FIX TYPE ERROR
+                }
             });
             const datasetRecord = fileQuery.dataset_datasets?.[0];
             const dataFile = datasetRecord?.dataFile;
